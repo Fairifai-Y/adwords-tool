@@ -10,13 +10,34 @@ import shutil
 from pathlib import Path
 
 def get_python_executable():
-    """Get the correct Python executable, handling PythonAnywhere uwsgi issue."""
+    """Get the correct Python executable, handling PythonAnywhere uwsgi issue and Windows."""
+    import platform
+    
     # On PythonAnywhere, sys.executable might point to uwsgi
-    # Try to find python3.10, python3, or fall back to sys.executable
-    for python_cmd in ['python3.10', 'python3', 'python']:
+    # On Windows, prefer 'py' launcher, then 'python'
+    # On Linux/PythonAnywhere, prefer 'python3.10', then 'python3'
+    
+    if platform.system() == 'Windows':
+        # Windows: try 'py', 'python', then sys.executable
+        for python_cmd in ['py', 'python']:
+            if shutil.which(python_cmd):
+                return python_cmd
+    else:
+        # Linux/PythonAnywhere: try python3.10, python3, then python
+        for python_cmd in ['python3.10', 'python3', 'python']:
+            if shutil.which(python_cmd):
+                return python_cmd
+    
+    # Fallback: check if sys.executable is actually Python (not uwsgi)
+    if 'uwsgi' not in sys.executable.lower() and 'python' in sys.executable.lower():
+        return sys.executable
+    
+    # Last resort: try to find any Python
+    for python_cmd in ['python3.10', 'python3', 'python', 'py']:
         if shutil.which(python_cmd):
             return python_cmd
-    # Fallback to sys.executable if nothing found
+    
+    # Final fallback
     return sys.executable
 
 # Try to import Flask, install if not available
