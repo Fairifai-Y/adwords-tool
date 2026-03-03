@@ -1,0 +1,17 @@
+[Unit]
+Description=Google Ads Tool Web Interface
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/sdeal.com/adwords-tool
+Environment=PATH=/usr/bin:/usr/local/bin
+ExecStart=/usr/bin/python3 wsgi.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+

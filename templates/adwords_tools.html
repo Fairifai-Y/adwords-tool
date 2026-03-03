@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Ads Tools - SDeal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .tool-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+        }
+        .loading {
+            display: none;
+        }
+        .result-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .label-item {
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                SDeal Ads Tools
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link active" href="/admin/adwords-tools">
+                    <i class="fas fa-tools me-1"></i>
+                    Google Ads Tools
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-tools me-2"></i>
+                    Google Ads Campaign Tools
+                </h1>
+            </div>
+        </div>
+
+        <!-- Label Discovery Tool -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card tool-card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-search me-2"></i>
+                            Label Discovery
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="discoverForm">
+                            <div class="mb-3">
+                                <label for="customerId" class="form-label">Customer ID *</label>
+                                <input type="text" class="form-control" id="customerId" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="labelIndex" class="form-label">Label Index</label>
+                                <select class="form-select" id="labelIndex">
+                                    <option value="0">custom_label_0</option>
+                                    <option value="1">custom_label_1</option>
+                                    <option value="2">custom_label_2</option>
+                                    <option value="3">custom_label_3</option>
+                                    <option value="4">custom_label_4</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="salesCountry" class="form-label">Sales Country</label>
+                                <input type="text" class="form-control" id="salesCountry" value="DK">
+                            </div>
+                            <div class="mb-3">
+                                <label for="merchantId" class="form-label">Merchant Center ID (optioneel)</label>
+                                <input type="text" class="form-control" id="merchantId">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>
+                                Discover Labels
+                            </button>
+                        </form>
+                        
+                        <div class="loading mt-3" id="discoverLoading">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border text-primary me-2" role="status"></div>
+                                <span>Labels ontdekken...</span>
+                            </div>
+                        </div>
+
+                        <div id="discoverResults" class="result-box" style="display: none;">
+                            <h6>Gevonden Labels:</h6>
+                            <div id="labelsList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campaign Creation Tool -->
+            <div class="col-md-6">
+                <div class="card tool-card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-plus me-2"></i>
+                            Campaign Creation
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="createForm">
+                            <div class="mb-3">
+                                <label for="createCustomerId" class="form-label">Customer ID *</label>
+                                <input type="text" class="form-control" id="createCustomerId" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="createLabelIndex" class="form-label">Label Index</label>
+                                <select class="form-select" id="createLabelIndex">
+                                    <option value="0">custom_label_0</option>
+                                    <option value="1">custom_label_1</option>
+                                    <option value="2">custom_label_2</option>
+                                    <option value="3">custom_label_3</option>
+                                    <option value="4">custom_label_4</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="campaignPrefix" class="form-label">Campaign Prefix</label>
+                                <input type="text" class="form-control" id="campaignPrefix" value="PMax Feed">
+                            </div>
+                            <div class="mb-3">
+                                <label for="dailyBudget" class="form-label">Daily Budget (€)</label>
+                                <input type="number" class="form-control" id="dailyBudget" value="5.0" step="0.1">
+                            </div>
+                            <div class="mb-3">
+                                <label for="targetRoas" class="form-label">Target ROAS (optioneel)</label>
+                                <input type="number" class="form-control" id="targetRoas" step="0.1" placeholder="6.5">
+                            </div>
+                            <div class="mb-3">
+                                <label for="salesCountryCreate" class="form-label">Sales Country</label>
+                                <input type="text" class="form-control" id="salesCountryCreate" value="DK">
+                            </div>
+                            <div class="mb-3">
+                                <label for="merchantIdCreate" class="form-label">Merchant Center ID (optioneel)</label>
+                                <input type="text" class="form-control" id="merchantIdCreate">
+                            </div>
+                            <div class="mb-3">
+                                <label for="euPolitical" class="form-label">EU Political Advertising</label>
+                                <select class="form-select" id="euPolitical">
+                                    <option value="false">No</option>
+                                    <option value="true">Yes</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-plus me-2"></i>
+                                Create Campaigns
+                            </button>
+                        </form>
+                        
+                        <div class="loading mt-3" id="createLoading">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border text-success me-2" role="status"></div>
+                                <span>Campagnes aanmaken...</span>
+                            </div>
+                        </div>
+
+                        <div id="createResults" class="result-box" style="display: none;">
+                            <h6>Resultaten:</h6>
+                            <div id="createOutput"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Label Discovery
+        document.getElementById('discoverForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                customer_id: document.getElementById('customerId').value,
+                label_index: parseInt(document.getElementById('labelIndex').value),
+                sales_country: document.getElementById('salesCountry').value,
+                merchant_id: document.getElementById('merchantId').value || null
+            };
+
+            // Show loading
+            document.getElementById('discoverLoading').style.display = 'block';
+            document.getElementById('discoverResults').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/discover-labels', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayLabels(result.labels);
+                    document.getElementById('discoverResults').style.display = 'block';
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                document.getElementById('discoverLoading').style.display = 'none';
+            }
+        });
+
+        function displayLabels(labels) {
+            const container = document.getElementById('labelsList');
+            container.innerHTML = '';
+
+            labels.forEach(label => {
+                const div = document.createElement('div');
+                div.className = 'label-item';
+                div.innerHTML = `
+                    <strong>${label.label}</strong>
+                    <span class="badge bg-primary ms-2">${label.impressions} impressions</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Campaign Creation
+        document.getElementById('createForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                customer_id: document.getElementById('createCustomerId').value,
+                label_index: parseInt(document.getElementById('createLabelIndex').value),
+                prefix: document.getElementById('campaignPrefix').value,
+                daily_budget: parseFloat(document.getElementById('dailyBudget').value),
+                target_roas: document.getElementById('targetRoas').value || null,
+                sales_country: document.getElementById('salesCountryCreate').value,
+                merchant_id: document.getElementById('merchantIdCreate').value || null,
+                eu_political: document.getElementById('euPolitical').value
+            };
+
+            // Show loading
+            document.getElementById('createLoading').style.display = 'block';
+            document.getElementById('createResults').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/create-campaigns', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayCreateResults(result);
+                    document.getElementById('createResults').style.display = 'block';
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                document.getElementById('createLoading').style.display = 'none';
+            }
+        });
+
+        function displayCreateResults(result) {
+            const container = document.getElementById('createOutput');
+            
+            let html = '<div class="alert alert-success">';
+            html += '<h6>Campagnes succesvol aangemaakt!</h6>';
+            
+            if (result.campaigns_created && result.campaigns_created.length > 0) {
+                html += '<p><strong>Aangemaakte Campaign IDs:</strong></p>';
+                html += '<ul>';
+                result.campaigns_created.forEach(campaignId => {
+                    html += `<li>${campaignId}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            html += '</div>';
+            
+            // Add raw output
+            html += '<details class="mt-3">';
+            html += '<summary>Volledige output</summary>';
+            html += '<pre class="mt-2" style="background: white; padding: 10px; border-radius: 5px; font-size: 12px;">';
+            html += result.output;
+            html += '</pre>';
+            html += '</details>';
+            
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# Content API for Shopping - aparte config (google-ads.yaml wordt niet aangeraakt)
+#
+# 1. Kopieer dit bestand naar content-api.yaml:
+#      copy content-api.yaml.example content-api.yaml
+#
+# 2. Zet dezelfde client_id en client_secret als in google-ads.yaml
+#    (zelfde GCP-project, andere scope voor deze token)
+#
+# 3. Genereer een refresh token alleen voor Content API:
+#      py -m src.generate_content_api_refresh_token
+#    Plak de getoonde refresh_token hieronder.
+#
+# Verplicht:
+client_id: "JE_CLIENT_ID.apps.googleusercontent.com"
+client_secret: "JE_CLIENT_SECRET"
+refresh_token: "1//0abc..."
+
+# Optioneel: standaard Merchant Center ID voor scripts
+# merchant_id: "389429754"
