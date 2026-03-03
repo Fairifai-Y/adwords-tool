@@ -2708,6 +2708,7 @@ def create_seller_bucket_campaigns():
             json.dump(config, f)
             config_file = f.name
         
+        python_exe = get_python_executable()
         # Run the seller-bucket campaign creation script
         cmd = [
             python_exe,
@@ -2769,6 +2770,8 @@ def sync_troas():
         if not seller:
             return jsonify({'success': False, 'error': 'seller (custom label 0) is required'}), 400
 
+        python_exe = get_python_executable()
+        print(f"DEBUG: Detected Python executable: {python_exe}")
         cmd = [
             python_exe, 'src/sync_troas_from_label1.py',
             '--customer', customer_id,
@@ -2808,6 +2811,8 @@ def adjust_portfolio_roas():
         if not reset and (percentage is None or percentage == 0):
             return jsonify({'success': False, 'error': 'Vul een percentage in (niet 0) of vink "Eerst resetten" aan (of beide).'})
         
+        python_exe = get_python_executable()
+        print(f"DEBUG: Detected Python executable: {python_exe}")
         # Build command: reset and/or percentage (both allowed: eerst reset, dan percentage)
         cmd = [
             python_exe,
