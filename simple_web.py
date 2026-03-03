@@ -95,16 +95,51 @@ HTML_TEMPLATE = """
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <span class="navbar-brand">SDeal Google Ads Tools</span>
+            <a class="navbar-brand" href="#top">SDeal Google Ads Tools</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNavbar">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#section-labels">Labels & Campaigns</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#section-seller-bucket">Seller-Bucket</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#section-seller-clicks">Seller Kliks</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#section-roas">Portfolio ROAS</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#section-cleanup">Cleanup</a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <h1 class="mb-4">Google Ads Campaign Tools</h1>
+    <div class="container mt-4" id="top">
+        <h1 class="mb-3">Google Ads Campaign Tools</h1>
         
-        <div class="row">
+        <!-- Global account selector -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <label class="form-label">Account selectie</label>
+                <select class="form-select" id="accountSelector">
+                    <option value="">Kies account...</option>
+                </select>
+                <small class="text-muted">
+                    Stelt automatisch Customer ID en Merchant Center ID in voor de formulieren hieronder.
+                </small>
+            </div>
+        </div>
+        
+        <div class="row" id="section-labels">
             <!-- Label Discovery -->
             <div class="col-md-6">
                 <div class="card tool-card">
@@ -558,7 +593,7 @@ HTML_TEMPLATE = """
         </div>
 
         <!-- Seller-Bucket Campaign Creation -->
-        <div class="row mt-4">
+        <div class="row mt-4" id="section-seller-bucket">
             <div class="col-12">
                 <div class="card tool-card">
                     <div class="card-header bg-secondary text-white">
@@ -756,7 +791,7 @@ HTML_TEMPLATE = """
         </div>
 
         <!-- Portfolio ROAS Adjustment -->
-        <div class="row mt-4">
+        <div class="row mt-4" id="section-roas">
             <div class="col-12">
                 <div class="card tool-card">
                     <div class="card-header bg-info text-white">
@@ -826,7 +861,7 @@ HTML_TEMPLATE = """
         </div>
         
         <!-- Seller Clicks Timeseries (last N days) -->
-        <div class="row mt-4">
+        <div class="row mt-4" id="section-seller-clicks">
             <div class="col-12">
                 <div class="card tool-card">
                     <div class="card-header bg-info text-white">
@@ -891,7 +926,7 @@ HTML_TEMPLATE = """
         </div>
         
         <!-- Delete Inactive Campaigns -->
-        <div class="row mt-4">
+        <div class="row mt-4" id="section-cleanup">
             <div class="col-12">
                 <div class="card tool-card">
                     <div class="card-header bg-danger text-white">
@@ -951,6 +986,72 @@ HTML_TEMPLATE = """
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let discoveredLabels = [];
+        let accountsConfig = [];
+        
+        async function loadAccountsConfig() {
+            try {
+                const response = await fetch('/api/accounts');
+                const result = await response.json();
+                if (!result.success) {
+                    console.warn('Failed to load accounts config:', result.error);
+                    return;
+                }
+                accountsConfig = result.accounts || [];
+                const select = document.getElementById('accountSelector');
+                if (!select) return;
+                
+                accountsConfig.forEach(acc => {
+                    const option = document.createElement('option');
+                    const label = acc.label || acc.key;
+                    const country = acc.country ? ` (${acc.country})` : '';
+                    option.value = acc.key;
+                    option.textContent = `${label}${country}`;
+                    select.appendChild(option);
+                });
+                
+                select.addEventListener('change', () => {
+                    const key = select.value;
+                    const acc = accountsConfig.find(a => a.key === key);
+                    if (!acc) return;
+                    
+                    const primaryCustomerId = (acc.customer_ids && acc.customer_ids[0]) || '';
+                    const merchantId = acc.merchant_id || '';
+                    
+                    const customerFields = [
+                        'customerId',
+                        'createCustomerId',
+                        'sellerBucketCustomerId',
+                        'sellerClicksCustomerId',
+                        'adjustRoasCustomerId',
+                        'deleteInactiveCustomerId'
+                    ];
+                    customerFields.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && primaryCustomerId) {
+                            el.value = primaryCustomerId;
+                        }
+                    });
+                    
+                    const merchantFields = [
+                        'merchantId',
+                        'merchantIdCreate',
+                        'sellerBucketMerchantId'
+                    ];
+                    merchantFields.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && merchantId) {
+                            el.value = merchantId;
+                        }
+                    });
+                });
+            } catch (e) {
+                console.warn('Error loading accounts config:', e);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAccountsConfig();
+        });
         
         // Handle PMax type change
         document.getElementById('pmaxType').addEventListener('change', function() {
@@ -2165,6 +2266,33 @@ def seller_clicks_timeseries():
 
     except Exception as e:
         print(f"Seller clicks exception: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/accounts', methods=['GET'])
+def get_accounts():
+    """Return configured accounts (Ads + Merchant) from config/accounts.json."""
+    try:
+        cfg_path = Path(__file__).parent / 'config' / 'accounts.json'
+        if not cfg_path.exists():
+            return jsonify({'success': False, 'error': 'accounts.json not found'})
+        
+        raw = cfg_path.read_text(encoding='utf-8')
+        data = json.loads(raw)
+        
+        accounts = []
+        for key, acc in data.items():
+            accounts.append({
+                'key': key,
+                'label': acc.get('label', key),
+                'country': acc.get('country'),
+                'customer_ids': acc.get('google_ads_customer_ids', []),
+                'merchant_id': acc.get('merchant_id')
+            })
+        
+        return jsonify({'success': True, 'accounts': accounts})
+    except Exception as e:
+        print(f"Accounts config exception: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 

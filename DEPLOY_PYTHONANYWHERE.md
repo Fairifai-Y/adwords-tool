@@ -155,11 +155,66 @@ chmod -R 755 ~/adwords-tool
 
 6. **Logs**: Check de **Error log** in de **Web** tab voor debugging informatie.
 
+## 🌐 Custom Domain Setup (siteperformifai.com)
+
+Als je een custom domain wilt gebruiken (bijv. `siteperformifai.com`):
+
+### 1. **DNS Configuratie bij je Domain Provider**
+
+Je moet een CNAME record toevoegen bij je domain provider (waar je `siteperformifai.com` hebt geregistreerd):
+
+```
+Type: CNAME
+Name: @ (of www)
+Value: sdeal.pythonanywhere.com (of je PythonAnywhere username)
+TTL: 3600 (of default)
+```
+
+**Voorbeeld:**
+- Als je `siteperformifai.com` wilt gebruiken: CNAME `@` → `sdeal.pythonanywhere.com`
+- Als je `www.siteperformifai.com` wilt gebruiken: CNAME `www` → `sdeal.pythonanywhere.com`
+
+### 2. **PythonAnywhere Web App Configuratie**
+
+1. Ga naar **Web** tab in PythonAnywhere
+2. Klik op je web app
+3. Scroll naar beneden naar **"Static files"** sectie
+4. Zoek naar **"Add a new domain"** of **"Domain"** sectie
+5. Voeg je custom domain toe: `siteperformifai.com` (en eventueel `www.siteperformifai.com`)
+6. Klik op **"Reload"** om de wijzigingen toe te passen
+
+### 3. **HTTPS Certificate**
+
+PythonAnywhere regelt automatisch een SSL certificaat voor je custom domain:
+- Ga naar **Web** tab
+- Scroll naar **"Security"** sectie
+- Je zou moeten zien: "HTTPS certificate: Automatically provided for this hostname"
+- Als dit niet automatisch gebeurt, kan het 24-48 uur duren voordat het certificaat wordt gegenereerd
+
+### 4. **Testen**
+
+Na DNS propagatie (kan 1-24 uur duren):
+- Test: `https://siteperformifai.com`
+- Test: `https://www.siteperformifai.com` (als je www hebt geconfigureerd)
+
+**DNS propagatie checken:**
+```bash
+# In een terminal:
+nslookup siteperformifai.com
+# Of:
+dig siteperformifai.com
+```
+
+### 5. **Troubleshooting Custom Domain**
+
+- **Domain werkt niet**: Check of DNS is gepropageerd (kan 24 uur duren)
+- **HTTPS werkt niet**: Wacht 24-48 uur op automatisch SSL certificaat
+- **"Domain not found"**: Check of je domain correct is toegevoegd in PythonAnywhere Web tab
+
 ## 🚀 Volgende stappen
 
 - Test alle functionaliteit in de web interface
 - Check de error logs regelmatig
-- Overweeg een custom domain als je het productief gebruikt
 - Backup je `config/google-ads.yaml` regelmatig (bevat gevoelige credentials)
 
 ## 📞 Support
