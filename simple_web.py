@@ -27,10 +27,24 @@ def get_python_executable():
             return sys.executable
     else:
         # Linux/PythonAnywhere: ALWAYS try to find python explicitly (never use sys.executable if it's uwsgi)
-        # Priority: python3.10, python3, python
+        # First try common paths directly (more reliable than shutil.which on some systems)
+        common_paths = [
+            '/usr/bin/python3.10',
+            '/usr/local/bin/python3.10',
+            '/usr/bin/python3',
+            '/usr/local/bin/python3',
+            '/bin/python3.10',
+            '/bin/python3',
+        ]
+        for python_path in common_paths:
+            if os.path.exists(python_path) and os.access(python_path, os.X_OK):
+                return python_path
+        
+        # Then try shutil.which (might work if PATH is set correctly)
         for python_cmd in ['python3.10', 'python3', 'python']:
-            if shutil.which(python_cmd):
-                return python_cmd
+            found = shutil.which(python_cmd)
+            if found:
+                return found
         
         # If we're on Linux and sys.executable is NOT uwsgi, it might be OK
         if 'uwsgi' not in sys.executable.lower() and 'python' in sys.executable.lower():
@@ -38,8 +52,9 @@ def get_python_executable():
     
     # Last resort: try to find any Python (cross-platform)
     for python_cmd in ['python3.10', 'python3', 'python', 'py']:
-        if shutil.which(python_cmd):
-            return python_cmd
+        found = shutil.which(python_cmd)
+        if found:
+            return found
     
     # Final fallback: only if sys.executable is NOT uwsgi
     if 'uwsgi' not in sys.executable.lower():
