@@ -13,32 +13,41 @@ def get_python_executable():
     """Get the correct Python executable, handling PythonAnywhere uwsgi issue and Windows."""
     import platform
     
-    # On PythonAnywhere, sys.executable might point to uwsgi
+    # On PythonAnywhere, sys.executable points to uwsgi, so we MUST find python explicitly
     # On Windows, prefer 'py' launcher, then 'python'
     # On Linux/PythonAnywhere, prefer 'python3.10', then 'python3'
     
     if platform.system() == 'Windows':
-        # Windows: try 'py', 'python', then sys.executable
+        # Windows: try 'py', 'python', then sys.executable (if it's actually Python)
         for python_cmd in ['py', 'python']:
             if shutil.which(python_cmd):
                 return python_cmd
+        # Check if sys.executable is actually Python (not something else)
+        if 'python' in sys.executable.lower() and 'uwsgi' not in sys.executable.lower():
+            return sys.executable
     else:
-        # Linux/PythonAnywhere: try python3.10, python3, then python
+        # Linux/PythonAnywhere: ALWAYS try to find python explicitly (never use sys.executable if it's uwsgi)
+        # Priority: python3.10, python3, python
         for python_cmd in ['python3.10', 'python3', 'python']:
             if shutil.which(python_cmd):
                 return python_cmd
+        
+        # If we're on Linux and sys.executable is NOT uwsgi, it might be OK
+        if 'uwsgi' not in sys.executable.lower() and 'python' in sys.executable.lower():
+            return sys.executable
     
-    # Fallback: check if sys.executable is actually Python (not uwsgi)
-    if 'uwsgi' not in sys.executable.lower() and 'python' in sys.executable.lower():
-        return sys.executable
-    
-    # Last resort: try to find any Python
+    # Last resort: try to find any Python (cross-platform)
     for python_cmd in ['python3.10', 'python3', 'python', 'py']:
         if shutil.which(python_cmd):
             return python_cmd
     
-    # Final fallback
-    return sys.executable
+    # Final fallback: only if sys.executable is NOT uwsgi
+    if 'uwsgi' not in sys.executable.lower():
+        return sys.executable
+    
+    # If we get here and sys.executable is uwsgi, we have a problem
+    # Return a default that should work on most systems
+    return 'python3'
 
 # Try to import Flask, install if not available
 try:
@@ -2111,6 +2120,9 @@ def seller_clicks_timeseries():
             return jsonify({'success': False, 'error': 'Campaign name substring is required'})
 
         python_exe = get_python_executable()
+        print(f"DEBUG: Detected Python executable: {python_exe}")
+        print(f"DEBUG: sys.executable = {sys.executable}")
+        
         cmd = [
             python_exe,
             'src/seller_clicks_timeseries.py',
