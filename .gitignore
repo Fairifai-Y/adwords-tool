@@ -40,6 +40,7 @@ ENV/
 # Config files met credentials (NIET committen!)
 config/google-ads.yaml
 config/content-api.yaml
+config/accounts.json
 
 # Reports en exports
 reports/
