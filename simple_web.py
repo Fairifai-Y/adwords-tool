@@ -6,7 +6,18 @@ import os
 import sys
 import subprocess
 import json
+import shutil
 from pathlib import Path
+
+def get_python_executable():
+    """Get the correct Python executable, handling PythonAnywhere uwsgi issue."""
+    # On PythonAnywhere, sys.executable might point to uwsgi
+    # Try to find python3.10, python3, or fall back to sys.executable
+    for python_cmd in ['python3.10', 'python3', 'python']:
+        if shutil.which(python_cmd):
+            return python_cmd
+    # Fallback to sys.executable if nothing found
+    return sys.executable
 
 # Try to import Flask, install if not available
 try:
@@ -2032,8 +2043,9 @@ def discover_labels():
         data = request.json
         print(f"Received data: {data}")  # Debug log
         
+        python_exe = get_python_executable()
         cmd = [
-            sys.executable, 'src/label_campaigns.py',
+            python_exe, 'src/label_campaigns.py',
             '--customer', data.get('customer_id'),
             '--label-index', str(data.get('label_index', 0)),
             '--apply', 'false'
@@ -2077,8 +2089,9 @@ def seller_clicks_timeseries():
         if not campaign_name:
             return jsonify({'success': False, 'error': 'Campaign name substring is required'})
 
+        python_exe = get_python_executable()
         cmd = [
-            sys.executable,
+            python_exe,
             'src/seller_clicks_timeseries.py',
             '--customer', customer_id,
             '--campaign-name', campaign_name,
@@ -2119,8 +2132,9 @@ def delete_inactive_campaigns():
         if not customer_id:
             return jsonify({'success': False, 'error': 'Customer ID is required'})
 
+        python_exe = get_python_executable()
         cmd = [
-            sys.executable,
+            python_exe,
             'src/delete_inactive_campaigns.py',
             '--customer', customer_id,
             '--days', str(days)
@@ -2158,6 +2172,7 @@ def preview_campaigns():
         
         print(f"Preview request - campaign_type: {campaign_type}")  # Debug log
         
+        python_exe = get_python_executable()
         temp_file = None
         
         if campaign_type == 'standard':
@@ -2179,7 +2194,7 @@ def preview_campaigns():
             print(f"Temp file contents: {Path(temp_file).read_text()}")  # Debug log
             
             cmd = [
-                sys.executable, 'src/label_campaigns.py',
+                python_exe, 'src/label_campaigns.py',
                 '--customer', data.get('customer_id'),
                 '--label-index', str(data.get('label_index', 0)),
                 '--prefix', data.get('prefix', ''),
@@ -2192,7 +2207,7 @@ def preview_campaigns():
             # For PMax ALL Labels, we automatically discover labels using extended search
             # No need for manual label selection - the script will discover all labels automatically
             cmd = [
-                sys.executable, 'src/label_campaigns.py',
+                python_exe, 'src/label_campaigns.py',
                 '--customer', data.get('customer_id'),
                 '--label-index', str(data.get('label_index', 0)),
                 '--prefix', data.get('prefix', 'PMax ALL'),
@@ -2212,7 +2227,7 @@ def preview_campaigns():
         elif campaign_type == 'product-type':
             # Route to Standard Shopping triplet creator
             cmd = [
-                sys.executable, 'src/create_product_type_campaigns.py',
+                python_exe, 'src/create_product_type_campaigns.py',
                 '--customer', data.get('customer_id'),
                 '--prefix', data.get('prefix', 'Std Shopping'),
                 '--daily-budget', str(data.get('daily_budget', 5.0)),
@@ -2236,7 +2251,7 @@ def preview_campaigns():
                 cmd.extend(['--max-campaigns', str(data.get('max_campaigns'))])
         else:  # seller-bucket
             cmd = [
-                sys.executable, 'src/create_seller_bucket_campaigns.py',
+                python_exe, 'src/create_seller_bucket_campaigns.py',
                 '--customer', data.get('customer_id'),
                 '--merchant-id', data.get('merchant_id', '5561429284')
             ]
@@ -2311,6 +2326,7 @@ def create_campaigns():
         
         print(f"Create request - campaign_type: {campaign_type}")  # Debug log
         
+        python_exe = get_python_executable()
         temp_file = None
         
         if campaign_type == 'standard':
@@ -2332,7 +2348,7 @@ def create_campaigns():
             print(f"Temp file contents: {Path(temp_file).read_text()}")  # Debug log
             
             cmd = [
-                sys.executable, 'src/label_campaigns.py',
+                python_exe, 'src/label_campaigns.py',
                 '--customer', data.get('customer_id'),
                 '--label-index', str(data.get('label_index', 0)),
                 '--prefix', data.get('prefix', ''),
@@ -2345,7 +2361,7 @@ def create_campaigns():
             # For PMax ALL Labels, we automatically discover labels using extended search
             # No need for manual label selection - the script will discover all labels automatically
             cmd = [
-                sys.executable, 'src/label_campaigns.py',
+                python_exe, 'src/label_campaigns.py',
                 '--customer', data.get('customer_id'),
                 '--label-index', str(data.get('label_index', 0)),
                 '--prefix', data.get('prefix', 'PMax ALL'),
@@ -2373,7 +2389,7 @@ def create_campaigns():
         elif campaign_type == 'product-type':
             # Route to Standard Shopping triplet creator
             cmd = [
-                sys.executable, 'src/create_product_type_campaigns.py',
+                python_exe, 'src/create_product_type_campaigns.py',
                 '--customer', data.get('customer_id'),
                 '--prefix', data.get('prefix', 'Std Shopping'),
                 '--daily-budget', str(data.get('daily_budget', 5.0)),
@@ -2397,7 +2413,7 @@ def create_campaigns():
                 cmd.extend(['--max-campaigns', str(data.get('max_campaigns'))])
         else:  # seller-bucket
             cmd = [
-                sys.executable, 'src/create_seller_bucket_campaigns.py',
+                python_exe, 'src/create_seller_bucket_campaigns.py',
                 '--customer', data.get('customer_id'),
                 '--merchant-id', data.get('merchant_id', '5561429284'),
                 '--apply'  # No value needed for action="store_true"
@@ -2494,9 +2510,10 @@ def performance_rules():
             json.dump(rules_config, f, indent=2)
             rules_file = f.name
         
+        python_exe = get_python_executable()
         # Run the performance rules script
         cmd = [
-            sys.executable, 'src/performance_rules.py',
+            python_exe, 'src/performance_rules.py',
             '--config', rules_file
         ]
         
@@ -2558,9 +2575,10 @@ def weekly_monitor():
         print(f"Weekly monitor request for customer: {customer_id}")
         print(f"Performance metrics: ROAS={include_roas}, CTR={include_ctr}, Budget={include_budget}, Volume={include_volume}, Labels={include_labels}, Trends={include_trends}")
         
+        python_exe = get_python_executable()
         # Run the weekly monitor script
         cmd = [
-            sys.executable, 'src/weekly_campaign_monitor.py',
+            python_exe, 'src/weekly_campaign_monitor.py',
             '--customer', customer_id,
             '--prefix', prefix,
             '--label-index', str(label_index),
@@ -2644,7 +2662,7 @@ def create_seller_bucket_campaigns():
         
         # Run the seller-bucket campaign creation script
         cmd = [
-            sys.executable,
+            python_exe,
             'src/create_seller_bucket_campaigns.py',
             '--customer', customer_id,
             '--merchant-id', merchant_id
@@ -2704,7 +2722,7 @@ def sync_troas():
             return jsonify({'success': False, 'error': 'seller (custom label 0) is required'}), 400
 
         cmd = [
-            sys.executable, 'src/sync_troas_from_label1.py',
+            python_exe, 'src/sync_troas_from_label1.py',
             '--customer', customer_id,
             '--seller', seller,
             '--days-back', str(days_back)
@@ -2744,7 +2762,7 @@ def adjust_portfolio_roas():
         
         # Build command: reset and/or percentage (both allowed: eerst reset, dan percentage)
         cmd = [
-            sys.executable,
+            python_exe,
             'src/adjust_portfolio_roas.py',
             '--customer', customer_id
         ]
