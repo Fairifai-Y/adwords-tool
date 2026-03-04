@@ -194,6 +194,10 @@ def run_standard(job: WeeklyJob, cfg: StandardConfig, python_exe: str) -> None:
         cfg.target_languages,
     ]
 
+    # Merchant ID is required for Shopping campaigns (shopping_setting.merchant_id)
+    if cfg.merchant_id:
+        cmd.extend(["--merchant-id", cfg.merchant_id])
+
     if cfg.roas_factor:
         cmd.extend(["--roas-factor", str(cfg.roas_factor)])
     if cfg.start_enabled:

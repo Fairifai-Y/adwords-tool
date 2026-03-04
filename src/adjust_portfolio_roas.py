@@ -182,7 +182,7 @@ def find_enabled_troas_strategy_resource_names(client: GoogleAdsClient, customer
             campaign.bidding_strategy
         FROM campaign
         WHERE campaign.status = 'ENABLED'
-          AND campaign.bidding_strategy != ''
+          AND campaign.bidding_strategy IS NOT NULL
     """
 
     strategy_rns: set[str] = set()
