@@ -107,7 +107,7 @@ HTML_TEMPLATE = """
                         <a class="nav-link" href="#section-labels">Labels & Campaigns</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#section-seller-bucket">Seller-Bucket</a>
+                        <a class="nav-link" href="#section-pmax">PMax Creation</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#section-seller-clicks">Seller Kliks</a>
@@ -201,37 +201,11 @@ HTML_TEMPLATE = """
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Select Labels</label>
-                                <div id="labelSelection" class="border rounded p-3" style="background: #f8f9fa;">
-                                    <small class="text-muted">Eerst labels ontdekken om ze hier te kunnen selecteren</small>
+                                <div class="alert alert-info">
+                                    <strong>Standard Shopping Campagnes:</strong><br>
+                                    Campagnes worden automatisch aangemaakt voor alle combinaties van custom_label_0 + custom_label_4 + custom_label_2.<br>
+                                    Geen handmatige label selectie nodig.
                                 </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Campaign Type</label>
-                                <select class="form-select" id="campaignType">
-                                    <option value="standard">Standard (Per custom_label_0)</option>
-                                    <option value="product-type">Standard Shopping (label_0 + label_4 + label_2)</option>
-                                    <option value="seller-bucket">Seller-Bucket (Per seller + price bucket + config combinatie)</option>
-                                    <option value="pmax-all-labels">PMax ALL Labels (Automatisch alle labels)</option>
-                                </select>
-                                <small class="text-muted">
-                                    <strong>Standard:</strong> Eén campagne per custom_label_0<br>
-                                    <strong>Standard Shopping:</strong> Eén campagne per combinatie van custom_label_0 + custom_label_4 + custom_label_2<br>
-                                    <strong>Seller-Bucket:</strong> Eén campagne per combinatie van seller (label_0) + price bucket (label_2) + config type (label_4)<br>
-                                    <strong>PMax ALL Labels:</strong> Automatisch PMax campagnes voor ALLE ontdekte labels (geen handmatige selectie)
-                                </small>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">PMax Type</label>
-                                <select class="form-select" id="pmaxType">
-                                    <option value="feed-only">Feed-Only PMax (Producten uit Merchant Center)</option>
-                                    <option value="normal">Normale PMax (Met creatives)</option>
-                                </select>
-                                <small class="text-muted">
-                                    <strong>Feed-Only:</strong> Alleen producten uit Merchant Center feed, vereist Merchant Center ID<br>
-                                    <strong>Normale PMax:</strong> Kan creatives hebben, Merchant Center ID optioneel
-                                </small>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Campaign Prefix</label>
@@ -426,7 +400,7 @@ HTML_TEMPLATE = """
                             <div class="mb-3" id="merchantIdGroup">
                                 <label class="form-label">Merchant Center ID *</label>
                                 <input type="text" class="form-control" id="merchantIdCreate" required>
-                                <small class="text-muted">Vereist voor Feed-Only PMax. Vind je Merchant Center ID in Google Ads onder Tools > Linked accounts > Merchant Center.</small>
+                                <small class="text-muted">Vereist voor Standard Shopping campagnes. Vind je Merchant Center ID in Google Ads onder Tools > Linked accounts > Merchant Center.</small>
                             </div>
                             <button type="button" class="btn btn-warning me-2" onclick="previewCampaigns()">Preview Campagnes</button>
                             <button type="submit" class="btn btn-success" id="createButton">Create Selected Campaigns</button>
@@ -451,208 +425,119 @@ HTML_TEMPLATE = """
             </div>
         </div>
         
-        <!-- Campaign Performance Rules -->
-        <div class="row mt-4">
+        <!-- PMax Creation -->
+        <div class="row mt-4" id="section-pmax">
             <div class="col-12">
                 <div class="card tool-card">
                     <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">📊 Campaign Performance Rules</h5>
+                        <h5 class="mb-0">🚀 PMax Creation</h5>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
-                                <h6>[RULES] Performance Rules Management</h6>
-                                <p class="text-muted">Stel regels in voor automatische campagne optimalisatie op basis van prestaties.</p>
+                                <h6>[CREATE] PMax ALL Labels</h6>
+                                <p class="text-muted">Automatisch PMax campagnes voor ALLE ontdekte labels. Geen handmatige label selectie nodig - alle labels worden automatisch gebruikt.</p>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Customer ID *</label>
-                                    <input type="text" class="form-control" id="rulesCustomerId" placeholder="866-851-6809">
+                                    <input type="text" class="form-control" id="pmaxCustomerId" required>
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label class="form-label">Campaign Prefix</label>
-                                    <input type="text" class="form-control" id="rulesPrefix" value="" placeholder="Leave empty to search all ENABLED campaigns">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Performance Period (days)</label>
-                                    <select class="form-select" id="performancePeriod">
-                                        <option value="7">7 dagen</option>
-                                        <option value="14">14 dagen</option>
-                                        <option value="30">30 dagen</option>
+                                    <label class="form-label">Label Index</label>
+                                    <select class="form-select" id="pmaxLabelIndex">
+                                        <option value="0">custom_label_0</option>
+                                        <option value="1">custom_label_1</option>
+                                        <option value="2">custom_label_2</option>
                                     </select>
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <h6>Performance Rules:</h6>
-                                    <div class="border rounded p-3" style="background: #f8f9fa;">
-                                        <div class="mb-3">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="rulePauseLowPerforming" checked>
-                                                <label class="form-check-label" for="rulePauseLowPerforming">
-                                                    <strong>Pauzeer campagnes met lage prestaties</strong>
-                                                </label>
-                                            </div>
-                                            <div class="row mt-2">
-                                                <div class="col-6">
-                                                    <label class="form-label small">Min. ROAS</label>
-                                                    <input type="number" class="form-control form-control-sm" id="minRoas" value="2.0" step="0.1">
-                                                </div>
-                                                <div class="col-6">
-                                                    <label class="form-label small">Min. Impressions</label>
-                                                    <input type="number" class="form-control form-control-sm" id="minImpressionsRule" value="100">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="mb-3">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="ruleIncreaseBudget" checked>
-                                                <label class="form-check-label" for="ruleIncreaseBudget">
-                                                    <strong>Verhoog budget voor goed presterende campagnes</strong>
-                                                </label>
-                                            </div>
-                                            <div class="row mt-2">
-                                                <div class="col-6">
-                                                    <label class="form-label small">Min. ROAS</label>
-                                                    <input type="number" class="form-control form-control-sm" id="increaseMinRoas" value="4.0" step="0.1">
-                                                </div>
-                                                <div class="col-6">
-                                                    <label class="form-label small">Budget Increase %</label>
-                                                    <input type="number" class="form-control form-control-sm" id="budgetIncreasePercent" value="20" step="5">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="mb-3">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="ruleAdjustTroas" checked>
-                                                <label class="form-check-label" for="ruleAdjustTroas">
-                                                    <strong>Pas tROAS aan op basis van prestaties</strong>
-                                                </label>
-                                            </div>
-                                            <div class="row mt-2">
-                                                <div class="col-6">
-                                                    <label class="form-label small">ROAS > 5.0: tROAS +</label>
-                                                    <input type="number" class="form-control form-control-sm" id="troasIncrease" value="0.5" step="0.1">
-                                                </div>
-                                                <div class="col-6">
-                                                    <label class="form-label small">ROAS < 3.0: tROAS -</label>
-                                                    <input type="number" class="form-control form-control-sm" id="troasDecrease" value="0.5" step="0.1">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <label class="form-label">PMax Type</label>
+                                    <select class="form-select" id="pmaxTypeSelect">
+                                        <option value="feed-only">Feed-Only PMax (Producten uit Merchant Center)</option>
+                                        <option value="normal">Normale PMax (Met creatives)</option>
+                                    </select>
+                                    <small class="text-muted">
+                                        <strong>Feed-Only:</strong> Alleen producten uit Merchant Center feed, vereist Merchant Center ID<br>
+                                        <strong>Normale PMax:</strong> Kan creatives hebben, Merchant Center ID optioneel
+                                    </small>
                                 </div>
                                 
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="autoApplyRules">
-                                        <label class="form-check-label" for="autoApplyRules">
-                                            <strong>Automatisch regels toepassen</strong>
-                                        </label>
-                                        <small class="form-text text-muted d-block">
-                                            Als aangevinkt: regels worden direct toegepast. Anders: alleen preview.
-                                        </small>
-                                    </div>
-                                </div>
-                                
-                                <button type="button" class="btn btn-info" onclick="runPerformanceRules()">
-                                    [RUN] Apply Performance Rules
-                                </button>
-                                
-                                <div class="mt-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="detailedRulesReport">
-                                        <label class="form-check-label" for="detailedRulesReport">
-                                            📊 Generate Detailed Rules Report
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <h6>[RESULTS] Rules Results</h6>
-                                <div id="rulesResults" class="border rounded p-3" style="background: #f8f9fa; min-height: 200px;">
-                                    <small class="text-muted">Klik op "Apply Performance Rules" om te beginnen...</small>
-                                </div>
-                                
-                                <div class="mt-3">
-                                    <button type="button" class="btn btn-success" id="applyRulesBtn" style="display: none;" onclick="applyPerformanceRules()">
-                                        [APPLY] Apply Rules
-                                    </button>
-                                    <button type="button" class="btn btn-warning" id="previewRulesBtn" style="display: none;" onclick="previewPerformanceRules()">
-                                        [PREVIEW] Preview Rules
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Seller-Bucket Campaign Creation -->
-        <div class="row mt-4" id="section-seller-bucket">
-            <div class="col-12">
-                <div class="card tool-card">
-                    <div class="card-header bg-secondary text-white">
-                        <h5 class="mb-0">🏷️ Seller-Bucket Campaign Creation</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6>[CREATE] Seller-Bucket Campaigns</h6>
-                                <p class="text-muted">Creëer campagnes per seller (custom label 0) en price bucket (custom label 2) combinatie. Elke seller krijgt 4 campagnes per price bucket.</p>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Customer ID *</label>
-                                    <input type="text" class="form-control" id="sellerBucketCustomerId" placeholder="505-912-6003">
-                                </div>
-                                
-                                <div class="mb-3">
+                                <div class="mb-3" id="pmaxMerchantIdGroup">
                                     <label class="form-label">Merchant Center ID *</label>
-                                    <input type="text" class="form-control" id="sellerBucketMerchantId" placeholder="389429754">
+                                    <input type="text" class="form-control" id="pmaxMerchantId" required>
                                     <small class="text-muted">Vereist voor Feed-Only PMax. Vind je Merchant Center ID in Google Ads onder Tools > Linked accounts > Merchant Center.</small>
                                 </div>
                                 
                                 <div class="mb-3">
+                                    <label class="form-label">Campaign Prefix</label>
+                                    <input type="text" class="form-control" id="pmaxPrefix" value="PMax ALL" placeholder="PMax ALL">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Daily Budget (€)</label>
+                                    <input type="number" class="form-control" id="pmaxDailyBudget" value="5.0" step="0.1">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="pmaxRoasFactor" class="form-label">ROAS Factor (±%)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">±</span>
+                                        <input type="number" class="form-control" id="pmaxRoasFactor" value="0" step="1" min="-50" max="50" placeholder="0">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Pas de berekende ROAS aan met percentage. Bijv: +10% maakt van 600 → 660, -10% maakt van 600 → 540
+                                    </small>
+                                </div>
+                                
+                                <div class="mb-3">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="sellerBucketApply" value="true">
-                                        <label class="form-check-label" for="sellerBucketApply">
-                                            <strong>Apply Changes</strong> (zonder vinkje = dry run)
+                                        <input class="form-check-input" type="checkbox" id="pmaxStartEnabled">
+                                        <label class="form-check-label" for="pmaxStartEnabled">
+                                            <strong>Start campagnes direct (ENABLED)</strong>
                                         </label>
+                                        <small class="form-text text-muted d-block">
+                                            Als aangevinkt: campagnes beginnen direct met serveren. Anders: campagnes worden gepauzeerd aangemaakt.
+                                        </small>
                                     </div>
                                 </div>
                                 
-                                <button type="button" class="btn btn-secondary" onclick="createSellerBucketCampaigns()">
-                                    [CREATE] Create Seller-Bucket Campaigns
-                                </button>
-                                
-                                <div class="mt-3">
-                                    <small class="text-muted">
-                                        <strong>Campaign Naming Pattern:</strong><br>
-                                        <code>{SELLER} - {CONFIG_TYPE} - {PRICE_BUCKET}</code><br><br>
-                                        <strong>Features:</strong><br>
-                                        • Feed-only Performance Max campaigns<br>
-                                        • Dynamic tROAS based on seller margins (custom label 1)<br>
-                                        • Listing groups filter by seller, price bucket, and config type<br>
-                                        • HIGH priority for specific campaigns<br>
-                                        • LOW priority catch-all campaign (tROAS: 7.5) for remaining products<br>
-                                        • Merchant Center integration<br><br>
-                                        <strong>Examples per Seller-Bucket:</strong><br>
-                                        • worldvit - config - 100-200 (tROAS: 6.67)<br>
-                                        • worldvit - normal - 100-200 (tROAS: 6.67)<br>
-                                        • brandon group - config - <50 (tROAS: 6.67)<br>
-                                        • brandon group - normal - <50 (tROAS: 6.67)
+                                <div class="mb-3">
+                                    <label class="form-label">Feed Label</label>
+                                    <select class="form-select" id="pmaxFeedLabel">
+                                        <option value="nl">🇳🇱 Nederlands (nl)</option>
+                                        <option value="">-- Selecteer feed label --</option>
+                                        <option value="be">🇧🇪 Belgisch (be)</option>
+                                        <option value="de">🇩🇪 Duits (de)</option>
+                                        <option value="fr">🇫🇷 Frans (fr)</option>
+                                        <option value="dk">🇩🇰 Deens (dk)</option>
+                                        <option value="it">🇮🇹 Italiaans (it)</option>
+                                        <option value="se">🇸🇪 Zweeds (se)</option>
+                                        <option value="pl">🇵🇱 Pools (pl)</option>
+                                        <option value="at">🇦🇹 Oostenrijks (at)</option>
+                                        <option value="ch">🇨🇭 Zwitsers (ch)</option>
+                                        <option value="es">🇪🇸 Spaans (es)</option>
+                                        <option value="gb">🇬🇧 Brits (gb)</option>
+                                        <option value="custom">📝 Aangepast...</option>
+                                    </select>
+                                    <div id="pmaxCustomFeedLabelDiv" style="display: none;" class="mt-2">
+                                        <input type="text" class="form-control" id="pmaxCustomFeedLabel" placeholder="Voer aangepaste feed label in">
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Selecteer het land-specifieke feed label uit Merchant Center
                                     </small>
                                 </div>
+                                
+                                <button type="button" class="btn btn-warning me-2" onclick="previewPmaxCampaigns()">Preview PMax Campagnes</button>
+                                <button type="button" class="btn btn-info" onclick="createPmaxCampaigns()">Create PMax Campagnes</button>
                             </div>
                             
                             <div class="col-md-6">
-                                <h6>[RESULTS] Creation Results</h6>
-                                <div id="sellerBucketResults" class="border rounded p-3" style="background: #f8f9fa; min-height: 200px;">
-                                    <small class="text-muted">Klik op "Create Seller-Bucket Campaigns" om te beginnen...</small>
+                                <h6>[RESULTS] PMax Creation Results</h6>
+                                <div id="pmaxResults" class="border rounded p-3" style="background: #f8f9fa; min-height: 200px;">
+                                    <small class="text-muted">Klik op "Preview PMax Campagnes" of "Create PMax Campagnes" om te beginnen...</small>
                                 </div>
                             </div>
                         </div>
@@ -1020,7 +905,7 @@ HTML_TEMPLATE = """
                     const customerFields = [
                         'customerId',
                         'createCustomerId',
-                        'sellerBucketCustomerId',
+                        'pmaxCustomerId',
                         'sellerClicksCustomerId',
                         'adjustRoasCustomerId',
                         'deleteInactiveCustomerId'
@@ -1035,7 +920,7 @@ HTML_TEMPLATE = """
                     const merchantFields = [
                         'merchantId',
                         'merchantIdCreate',
-                        'sellerBucketMerchantId'
+                        'pmaxMerchantId'
                     ];
                     merchantFields.forEach(id => {
                         const el = document.getElementById(id);
@@ -1053,11 +938,11 @@ HTML_TEMPLATE = """
             loadAccountsConfig();
         });
         
-        // Handle PMax type change
-        document.getElementById('pmaxType').addEventListener('change', function() {
+        // Handle PMax type change (for PMax Creation section)
+        document.getElementById('pmaxTypeSelect').addEventListener('change', function() {
             const pmaxType = this.value;
-            const merchantIdGroup = document.getElementById('merchantIdGroup');
-            const merchantIdInput = document.getElementById('merchantIdCreate');
+            const merchantIdGroup = document.getElementById('pmaxMerchantIdGroup');
+            const merchantIdInput = document.getElementById('pmaxMerchantId');
             const label = merchantIdGroup.querySelector('label');
             const small = merchantIdGroup.querySelector('small');
             
@@ -1072,20 +957,14 @@ HTML_TEMPLATE = """
             }
         });
         
-        // Handle Campaign type change
-        document.getElementById('campaignType').addEventListener('change', function() {
-            const campaignType = this.value;
-            const labelSelectionDiv = document.getElementById('labelSelection');
-            
-            if (campaignType === 'product-type') {
-                labelSelectionDiv.innerHTML = '<div class="alert alert-info"><strong>Product Type Campagnes:</strong><br>Campagnes worden automatisch aangemaakt voor alle combinaties van custom_label_0 + product_type labels.<br>Geen handmatige label selectie nodig.</div>';
-            } else if (campaignType === 'seller-bucket') {
-                labelSelectionDiv.innerHTML = '<div class="alert alert-info"><strong>Seller-Bucket Campagnes:</strong><br>Campagnes worden automatisch aangemaakt voor alle combinaties van seller (label_0) + price bucket (label_2) + config type (label_4).<br>Geen handmatige label selectie nodig.</div>';
-            } else if (campaignType === 'pmax-all-labels') {
-                labelSelectionDiv.innerHTML = '<div class="alert alert-success"><strong>PMax ALL Labels:</strong><br>Automatisch PMax campagnes voor ALLE ontdekte labels.<br>Geen handmatige label selectie nodig - alle labels worden automatisch gebruikt.</div>';
+        // Handle feed label custom option (for PMax Creation section)
+        document.getElementById('pmaxFeedLabel').addEventListener('change', function() {
+            const feedLabel = this.value;
+            const customDiv = document.getElementById('pmaxCustomFeedLabelDiv');
+            if (feedLabel === 'custom') {
+                customDiv.style.display = 'block';
             } else {
-                // Reset to default state for standard campaigns
-                labelSelectionDiv.innerHTML = '<small class="text-muted">Eerst labels ontdekken om ze hier te kunnen selecteren</small>';
+                customDiv.style.display = 'none';
             }
         });
         
@@ -1133,18 +1012,8 @@ HTML_TEMPLATE = """
         document.getElementById('createForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const campaignType = document.getElementById('campaignType').value;
-            
-            if (campaignType === 'standard') {
-                const selectedLabels = getSelectedLabels();
-                if (selectedLabels.length === 0) {
-                    alert('Selecteer minimaal één label om campagnes aan te maken.');
-                    return;
-                }
-            } else if (campaignType === 'pmax-all-labels') {
-                // For PMax ALL Labels, we will automatically discover labels
-                // No need to check if labels are already discovered
-            }
+            // Campaign creation now only supports Standard Shopping (product-type)
+            const campaignType = 'product-type';
             
             const customerId = document.getElementById('createCustomerId').value.trim();
             if (!customerId) {
@@ -1152,11 +1021,9 @@ HTML_TEMPLATE = """
                 return;
             }
             
-            const pmaxType = document.getElementById('pmaxType').value;
             const merchantId = document.getElementById('merchantIdCreate').value.trim();
-            
-            if (pmaxType === 'feed-only' && !merchantId) {
-                alert('Vul een Merchant Center ID in. Dit is vereist voor Feed-Only PMax campagnes.');
+            if (!merchantId) {
+                alert('Vul een Merchant Center ID in. Dit is vereist voor Standard Shopping campagnes.');
                 return;
             }
             
@@ -1172,15 +1039,13 @@ HTML_TEMPLATE = """
                 campaign_type: campaignType,
                 label_index: parseInt(document.getElementById('createLabelIndex').value),
                 merchant_id: merchantId,
-                pmax_type: pmaxType,
                 prefix: document.getElementById('campaignPrefix').value,
                 daily_budget: parseFloat(document.getElementById('dailyBudget').value),
                 roas_factor: parseFloat(document.getElementById('roasFactor').value) || 0,
                 start_enabled: document.getElementById('startEnabled').checked,
                 target_languages: getSelectedLanguages().join(','),
                 target_countries: getSelectedCountries().join(','),
-                feed_label: getFeedLabel(),
-                selected_labels: campaignType === 'standard' ? getSelectedLabels() : []
+                feed_label: getFeedLabel()
             };
 
             try {
@@ -1399,6 +1264,153 @@ HTML_TEMPLATE = """
             }
             return select.value;
         }
+        
+        function getPmaxFeedLabel() {
+            const select = document.getElementById('pmaxFeedLabel');
+            if (select.value === 'custom') {
+                return document.getElementById('pmaxCustomFeedLabel').value.trim();
+            }
+            return select.value;
+        }
+
+        // PMax Campaign Functions
+        async function previewPmaxCampaigns() {
+            const customerId = document.getElementById('pmaxCustomerId').value.trim();
+            if (!customerId) {
+                alert('Vul een Customer ID in.');
+                return;
+            }
+            
+            const pmaxType = document.getElementById('pmaxTypeSelect').value;
+            const merchantId = document.getElementById('pmaxMerchantId').value.trim();
+            
+            if (pmaxType === 'feed-only' && !merchantId) {
+                alert('Vul een Merchant Center ID in. Dit is vereist voor Feed-Only PMax campagnes.');
+                return;
+            }
+            
+            const resultsContainer = document.getElementById('pmaxResults');
+            resultsContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-info" role="status"></div><br><small>Preview wordt gegenereerd...</small></div>';
+            
+            try {
+                const response = await fetch('/api/preview-campaigns', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        customer_id: customerId,
+                        campaign_type: 'pmax-all-labels',
+                        label_index: parseInt(document.getElementById('pmaxLabelIndex').value),
+                        merchant_id: merchantId,
+                        pmax_type: pmaxType,
+                        prefix: document.getElementById('pmaxPrefix').value || 'PMax ALL',
+                        daily_budget: parseFloat(document.getElementById('pmaxDailyBudget').value),
+                        roas_factor: parseFloat(document.getElementById('pmaxRoasFactor').value) || 0,
+                        start_enabled: document.getElementById('pmaxStartEnabled').checked,
+                        feed_label: getPmaxFeedLabel()
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultsContainer.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6>✅ PMax Preview Completed</h6>
+                            <pre style="max-height: 300px; overflow-y: auto;">${result.output}</pre>
+                            <hr>
+                            <small>Command: ${result.command}</small>
+                        </div>
+                    `;
+                } else {
+                    resultsContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6>❌ PMax Preview Failed</h6>
+                            <pre>${result.error || result.output}</pre>
+                            <hr>
+                            <small>Command: ${result.command}</small>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>❌ Network Error</h6>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        async function createPmaxCampaigns() {
+            const customerId = document.getElementById('pmaxCustomerId').value.trim();
+            if (!customerId) {
+                alert('Vul een Customer ID in.');
+                return;
+            }
+            
+            const pmaxType = document.getElementById('pmaxTypeSelect').value;
+            const merchantId = document.getElementById('pmaxMerchantId').value.trim();
+            
+            if (pmaxType === 'feed-only' && !merchantId) {
+                alert('Vul een Merchant Center ID in. Dit is vereist voor Feed-Only PMax campagnes.');
+                return;
+            }
+            
+            if (!confirm('⚠️ Weet je zeker dat je PMax campagnes wilt aanmaken? Dit kan niet ongedaan worden gemaakt.')) {
+                return;
+            }
+            
+            const resultsContainer = document.getElementById('pmaxResults');
+            resultsContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-info" role="status"></div><br><small>PMax campagnes worden aangemaakt...</small></div>';
+            
+            try {
+                const response = await fetch('/api/create-campaigns', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        customer_id: customerId,
+                        campaign_type: 'pmax-all-labels',
+                        label_index: parseInt(document.getElementById('pmaxLabelIndex').value),
+                        merchant_id: merchantId,
+                        pmax_type: pmaxType,
+                        prefix: document.getElementById('pmaxPrefix').value || 'PMax ALL',
+                        daily_budget: parseFloat(document.getElementById('pmaxDailyBudget').value),
+                        roas_factor: parseFloat(document.getElementById('pmaxRoasFactor').value) || 0,
+                        start_enabled: document.getElementById('pmaxStartEnabled').checked,
+                        feed_label: getPmaxFeedLabel()
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultsContainer.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6>✅ PMax Campagnes Aangemaakt</h6>
+                            <pre style="max-height: 300px; overflow-y: auto;">${result.output}</pre>
+                            <hr>
+                            <small>Command: ${result.command}</small>
+                        </div>
+                    `;
+                } else {
+                    resultsContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6>❌ PMax Campaign Creation Failed</h6>
+                            <pre>${result.error || result.output}</pre>
+                            <hr>
+                            <small>Command: ${result.command}</small>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>❌ Network Error</h6>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
 
         // Progress Bar Functions
         function showProgressBar() {
@@ -1551,18 +1563,8 @@ HTML_TEMPLATE = """
         }
 
         async function previewCampaigns() {
-            const campaignType = document.getElementById('campaignType').value;
-            
-            if (campaignType === 'standard') {
-                const selectedLabels = getSelectedLabels();
-                if (selectedLabels.length === 0) {
-                    alert('Selecteer minimaal één label om een preview te zien.');
-                    return;
-                }
-            } else if (campaignType === 'pmax-all-labels') {
-                // For PMax ALL Labels, we will automatically discover labels
-                // No need to check if labels are already discovered
-            }
+            // Campaign preview now only supports Standard Shopping (product-type)
+            const campaignType = 'product-type';
             
             const customerId = document.getElementById('createCustomerId').value.trim();
             if (!customerId) {
@@ -1570,11 +1572,9 @@ HTML_TEMPLATE = """
                 return;
             }
             
-            const pmaxType = document.getElementById('pmaxType').value;
             const merchantId = document.getElementById('merchantIdCreate').value.trim();
-            
-            if (pmaxType === 'feed-only' && !merchantId) {
-                alert('Vul een Merchant Center ID in. Dit is vereist voor Feed-Only PMax campagnes.');
+            if (!merchantId) {
+                alert('Vul een Merchant Center ID in. Dit is vereist voor Standard Shopping campagnes.');
                 return;
             }
             
@@ -1589,15 +1589,13 @@ HTML_TEMPLATE = """
                 campaign_type: campaignType,
                 label_index: parseInt(document.getElementById('createLabelIndex').value),
                 merchant_id: merchantId,
-                pmax_type: pmaxType,
                 prefix: document.getElementById('campaignPrefix').value,
                 daily_budget: parseFloat(document.getElementById('dailyBudget').value),
                 roas_factor: parseFloat(document.getElementById('roasFactor').value) || 0,
                 start_enabled: document.getElementById('startEnabled').checked,
                 target_languages: getSelectedLanguages().join(','),
                 target_countries: getSelectedCountries().join(','),
-                feed_label: getFeedLabel(),
-                selected_labels: campaignType === 'standard' ? getSelectedLabels() : []
+                feed_label: getFeedLabel()
             };
 
             try {
@@ -1632,69 +1630,6 @@ HTML_TEMPLATE = """
                 updateProgress(100, '❌ Netwerk fout');
                 alert('Error: ' + error.message);
                 hideProgressBar();
-            }
-        }
-
-        // Seller-Bucket Campaign Creation Functions
-        async function createSellerBucketCampaigns() {
-            const customerId = document.getElementById('sellerBucketCustomerId').value.trim();
-            const merchantId = document.getElementById('sellerBucketMerchantId').value.trim();
-            const apply = document.getElementById('sellerBucketApply').checked;
-            
-            if (!customerId) {
-                alert('Please enter a Customer ID');
-                return;
-            }
-            
-            if (!merchantId) {
-                alert('Please enter a Merchant Center ID');
-                return;
-            }
-            
-            const resultsContainer = document.getElementById('sellerBucketResults');
-            resultsContainer.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><br>Creating seller-bucket campaigns...</div>';
-            
-            try {
-                const response = await fetch('/api/create-seller-bucket-campaigns', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        customer_id: customerId,
-                        merchant_id: merchantId,
-                        apply: apply
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    resultsContainer.innerHTML = `
-                        <div class="alert alert-success">
-                            <h6>✅ Seller-Bucket Campaigns Created</h6>
-                            <pre style="max-height: 300px; overflow-y: auto;">${result.output}</pre>
-                            <hr>
-                            <small>Command: ${result.command}</small>
-                        </div>
-                    `;
-                } else {
-                    resultsContainer.innerHTML = `
-                        <div class="alert alert-danger">
-                            <h6>❌ Seller-Bucket Campaign Creation Failed</h6>
-                            <pre>${result.error || result.output}</pre>
-                            <hr>
-                            <small>Command: ${result.command}</small>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                resultsContainer.innerHTML = `
-                    <div class="alert alert-danger">
-                        <h6>❌ Error</h6>
-                        <p>${error.message}</p>
-                    </div>
-                `;
             }
         }
 
@@ -1859,180 +1794,6 @@ HTML_TEMPLATE = """
         function viewWeeklyChanges() {
             // This function can be expanded to show more detailed information
             alert('[DETAILS] Detailed monitoring information will be displayed here in future versions.');
-        }
-
-        // Performance Rules Functions
-        async function runPerformanceRules() {
-            const customerId = document.getElementById('rulesCustomerId').value.trim();
-            const prefix = document.getElementById('rulesPrefix').value.trim();
-            const performancePeriod = parseInt(document.getElementById('performancePeriod').value);
-            const autoApply = document.getElementById('autoApplyRules').checked;
-            const detailedReport = document.getElementById('detailedRulesReport').checked;
-            
-            if (!customerId) {
-                alert('Vul een Customer ID in.');
-                return;
-            }
-            
-            const rules = {
-                pause_low_performing: {
-                    enabled: document.getElementById('rulePauseLowPerforming').checked,
-                    min_roas: parseFloat(document.getElementById('minRoas').value),
-                    min_impressions: parseInt(document.getElementById('minImpressionsRule').value)
-                },
-                increase_budget: {
-                    enabled: document.getElementById('ruleIncreaseBudget').checked,
-                    min_roas: parseFloat(document.getElementById('increaseMinRoas').value),
-                    budget_increase_percent: parseInt(document.getElementById('budgetIncreasePercent').value)
-                },
-                adjust_troas: {
-                    enabled: document.getElementById('ruleAdjustTroas').checked,
-                    troas_increase: parseFloat(document.getElementById('troasIncrease').value),
-                    troas_decrease: parseFloat(document.getElementById('troasDecrease').value)
-                }
-            };
-            
-            const resultsContainer = document.getElementById('rulesResults');
-            resultsContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-info" role="status"></div><br><small>Performance rules worden uitgevoerd...</small></div>';
-            
-            try {
-                const response = await fetch('/api/performance-rules', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        customer_id: customerId,
-                        prefix: prefix,
-                        performance_period: performancePeriod,
-                        rules: rules,
-                        auto_apply: autoApply,
-                        detailed_report: detailedReport
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    resultsContainer.innerHTML = `
-                        <div class="alert alert-success">
-                            <h6>✅ Performance Rules Completed</h6>
-                            <pre style="max-height: 300px; overflow-y: auto;">${result.output}</pre>
-                            <hr>
-                            <small>Command: ${result.command}</small>
-                        </div>
-                    `;
-                    
-                    // Show action buttons
-                    if (!autoApply) {
-                        document.getElementById('applyRulesBtn').style.display = 'inline-block';
-                        document.getElementById('previewRulesBtn').style.display = 'inline-block';
-                    }
-                    
-                } else {
-                    resultsContainer.innerHTML = `
-                        <div class="alert alert-danger">
-                            <h6>❌ Performance Rules Failed</h6>
-                            <pre>${result.error || result.output}</pre>
-                            <hr>
-                            <small>Command: ${result.command}</small>
-                        </div>
-                    `;
-                }
-                
-            } catch (error) {
-                resultsContainer.innerHTML = `
-                    <div class="alert alert-danger">
-                        <h6>❌ Network Error</h6>
-                        <pre>${error.message}</pre>
-                    </div>
-                `;
-            }
-        }
-
-        async function applyPerformanceRules() {
-            const customerId = document.getElementById('rulesCustomerId').value.trim();
-            const prefix = document.getElementById('rulesPrefix').value.trim();
-            const performancePeriod = parseInt(document.getElementById('performancePeriod').value);
-            const detailedReport = document.getElementById('detailedRulesReport').checked;
-            
-            if (!confirm('⚠️ Weet je zeker dat je de performance regels wilt toepassen? Dit kan niet ongedaan worden gemaakt.')) {
-                return;
-            }
-            
-            const rules = {
-                pause_low_performing: {
-                    enabled: document.getElementById('rulePauseLowPerforming').checked,
-                    min_roas: parseFloat(document.getElementById('minRoas').value),
-                    min_impressions: parseInt(document.getElementById('minImpressionsRule').value)
-                },
-                increase_budget: {
-                    enabled: document.getElementById('ruleIncreaseBudget').checked,
-                    min_roas: parseFloat(document.getElementById('increaseMinRoas').value),
-                    budget_increase_percent: parseInt(document.getElementById('budgetIncreasePercent').value)
-                },
-                adjust_troas: {
-                    enabled: document.getElementById('ruleAdjustTroas').checked,
-                    troas_increase: parseFloat(document.getElementById('troasIncrease').value),
-                    troas_decrease: parseFloat(document.getElementById('troasDecrease').value)
-                }
-            };
-            
-            const resultsContainer = document.getElementById('rulesResults');
-            resultsContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-success" role="status"></div><br><small>Regels worden toegepast...</small></div>';
-            
-            try {
-                const response = await fetch('/api/performance-rules', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        customer_id: customerId,
-                        prefix: prefix,
-                        performance_period: performancePeriod,
-                        rules: rules,
-                        auto_apply: true,
-                        detailed_report: detailedReport
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    resultsContainer.innerHTML = `
-                        <div class="alert alert-success">
-                            <h6>✅ Rules Applied Successfully</h6>
-                            <pre style="max-height: 300px; overflow-y: auto;">${result.output}</pre>
-                            <hr>
-                            <small>Command: ${result.command}</small>
-                        </div>
-                    `;
-                    
-                    // Hide action buttons after successful application
-                    document.getElementById('applyRulesBtn').style.display = 'none';
-                    document.getElementById('previewRulesBtn').style.display = 'none';
-                    
-                } else {
-                    resultsContainer.innerHTML = `
-                        <div class="alert alert-danger">
-                            <h6>❌ Failed to Apply Rules</h6>
-                            <pre>${result.error || result.output}</pre>
-                            <hr>
-                            <small>Command: ${result.command}</small>
-                        </div>
-                    `;
-                }
-                
-            } catch (error) {
-                resultsContainer.innerHTML = `
-                    <div class="alert alert-danger">
-                        <h6>❌ Network Error</h6>
-                        <pre>${error.message}</pre>
-                    </div>
-                `;
-            }
-        }
-
-        function previewPerformanceRules() {
-            // This function can be expanded to show more detailed preview information
-            alert('[PREVIEW] Detailed performance rules preview will be displayed here in future versions.');
         }
 
         // Portfolio ROAS Adjustment Functions
@@ -2425,36 +2186,6 @@ def preview_campaigns():
             # Optional: max campaigns from UI
             if data.get('max_campaigns'):
                 cmd.extend(['--max-campaigns', str(data.get('max_campaigns'))])
-        else:  # seller-bucket
-            cmd = [
-                python_exe, 'src/create_seller_bucket_campaigns.py',
-                '--customer', data.get('customer_id'),
-                '--merchant-id', data.get('merchant_id', '5561429284')
-            ]
-            # Don't add --apply for preview mode (dry run)
-            
-            # Add target languages and countries for seller-bucket campaigns
-            if data.get('target_languages'):
-                cmd.extend(['--target-languages', data.get('target_languages')])
-            
-            if data.get('target_countries'):
-                cmd.extend(['--target-countries', data.get('target_countries')])
-            
-            # Add daily budget for seller-bucket campaigns
-            if data.get('daily_budget'):
-                cmd.extend(['--daily-budget', str(data.get('daily_budget'))])
-            
-            # Add ROAS factor for seller-bucket campaigns
-            if data.get('roas_factor') and data.get('roas_factor') != 0:
-                cmd.extend(['--roas-factor', str(data.get('roas_factor'))])
-            
-            # Add start-enabled flag for seller-bucket campaigns
-            if data.get('start_enabled'):
-                cmd.append('--start-enabled')
-            
-            # Add feed-label for seller-bucket campaigns
-            if data.get('feed_label'):
-                cmd.extend(['--feed-label', data.get('feed_label')])
         
         # Add additional parameters for standard and product-type campaigns only
         if campaign_type in ['standard', 'product-type']:
@@ -2587,36 +2318,6 @@ def create_campaigns():
             # Optional: max campaigns from UI
             if data.get('max_campaigns'):
                 cmd.extend(['--max-campaigns', str(data.get('max_campaigns'))])
-        else:  # seller-bucket
-            cmd = [
-                python_exe, 'src/create_seller_bucket_campaigns.py',
-                '--customer', data.get('customer_id'),
-                '--merchant-id', data.get('merchant_id', '5561429284'),
-                '--apply'  # No value needed for action="store_true"
-            ]
-            
-            # Add target languages and countries for seller-bucket campaigns
-            if data.get('target_languages'):
-                cmd.extend(['--target-languages', data.get('target_languages')])
-            
-            if data.get('target_countries'):
-                cmd.extend(['--target-countries', data.get('target_countries')])
-            
-            # Add daily budget for seller-bucket campaigns
-            if data.get('daily_budget'):
-                cmd.extend(['--daily-budget', str(data.get('daily_budget'))])
-            
-            # Add ROAS factor for seller-bucket campaigns
-            if data.get('roas_factor') and data.get('roas_factor') != 0:
-                cmd.extend(['--roas-factor', str(data.get('roas_factor'))])
-            
-            # Add start-enabled flag for seller-bucket campaigns
-            if data.get('start_enabled'):
-                cmd.append('--start-enabled')
-            
-            # Add feed-label for seller-bucket campaigns
-            if data.get('feed_label'):
-                cmd.extend(['--feed-label', data.get('feed_label')])
         
         # Add additional parameters for standard and product-type campaigns only
         if campaign_type in ['standard', 'product-type']:
@@ -2654,78 +2355,6 @@ def create_campaigns():
         })
     except Exception as e:
         print(f"Create exception: {e}")  # Debug log
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/performance-rules', methods=['POST'])
-def performance_rules():
-    try:
-        data = request.json
-        customer_id = data.get('customer_id')
-        prefix = data.get('prefix', '')
-        performance_period = data.get('performance_period', 7)
-        rules = data.get('rules', {})
-        auto_apply = data.get('auto_apply', False)
-        detailed_report = data.get('detailed_report', False)
-        
-        print(f"Performance rules request for customer: {customer_id}")
-        
-        # Create a temporary file with rules configuration
-        import tempfile
-        import json
-        
-        rules_config = {
-            'customer_id': customer_id,
-            'prefix': prefix,
-            'performance_period': performance_period,
-            'rules': rules,
-            'auto_apply': auto_apply,
-            'detailed_report': detailed_report
-        }
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as f:
-            json.dump(rules_config, f, indent=2)
-            rules_file = f.name
-        
-        python_exe = get_python_executable()
-        # Run the performance rules script
-        cmd = [
-            python_exe, 'src/performance_rules.py',
-            '--config', rules_file
-        ]
-        
-        print(f"Running command: {' '.join(cmd)}")
-        
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path(__file__).parent)
-        
-        print(f"Return code: {result.returncode}")
-        print(f"Stdout: {result.stdout[:1000]}...")
-        print(f"Stderr: {result.stderr[:500]}...")
-        
-        # Clean up temp file
-        try:
-            os.unlink(rules_file)
-        except:
-            pass
-        
-        # More detailed error reporting
-        if result.returncode != 0:
-            print(f"ERROR: Performance rules failed with return code {result.returncode}")
-            print(f"ERROR: Stderr: {result.stderr}")
-            return jsonify({
-                'success': False,
-                'output': f"Error (return code {result.returncode}): {result.stderr}",
-                'command': ' '.join(cmd),
-                'return_code': result.returncode
-            })
-        
-        return jsonify({
-            'success': True,
-            'output': result.stdout,
-            'command': ' '.join(cmd)
-        })
-        
-    except Exception as e:
-        print(f"Performance rules exception: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/weekly-monitor', methods=['POST'])
@@ -2807,69 +2436,6 @@ def weekly_monitor():
         
     except Exception as e:
         print(f"Weekly monitor exception: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/create-seller-bucket-campaigns', methods=['POST'])
-def create_seller_bucket_campaigns():
-    """Create seller-bucket campaigns."""
-    try:
-        data = request.get_json()
-        customer_id = data.get('customer_id')
-        merchant_id = data.get('merchant_id')
-        apply = data.get('apply', False)
-        
-        if not customer_id:
-            return jsonify({'success': False, 'error': 'Customer ID is required'})
-        
-        if not merchant_id:
-            return jsonify({'success': False, 'error': 'Merchant Center ID is required'})
-        
-        # Create temporary config file
-        config = {
-            'customer_id': customer_id,
-            'merchant_id': merchant_id,
-            'apply': apply
-        }
-        
-        import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            json.dump(config, f)
-            config_file = f.name
-        
-        python_exe = get_python_executable()
-        # Run the seller-bucket campaign creation script
-        cmd = [
-            python_exe,
-            'src/create_seller_bucket_campaigns.py',
-            '--customer', customer_id,
-            '--merchant-id', merchant_id
-        ]
-        
-        if apply:
-            cmd.append('--apply')
-        
-        print(f"Running command: {' '.join(cmd)}")
-        
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path(__file__).parent)
-        
-        print(f"Return code: {result.returncode}")
-        print(f"Stdout: {result.stdout}")
-        print(f"Stderr: {result.stderr}")
-        
-        # Clean up temp file
-        try:
-            os.unlink(config_file)
-        except:
-            pass
-        
-        return jsonify({
-            'success': result.returncode == 0,
-            'output': result.stdout if result.returncode == 0 else result.stderr,
-            'command': ' '.join(cmd)
-        })
-        
-    except Exception as e:
-        print(f"Seller-bucket campaign creation exception: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/sync-troas', methods=['POST'])
