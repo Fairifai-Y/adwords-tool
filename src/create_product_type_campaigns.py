@@ -170,7 +170,7 @@ class CampaignPlan:
 
 
 def get_existing_campaigns(client: GoogleAdsClient, customer_id: str, prefix: str) -> Set[str]:
-    """Get set of existing campaign names with the specified prefix."""
+    """Get set of existing ENABLED campaign names with the specified prefix."""
     ga = client.get_service("GoogleAdsService")
     
     # Escape prefix for GAQL query
@@ -181,6 +181,7 @@ def get_existing_campaigns(client: GoogleAdsClient, customer_id: str, prefix: st
         FROM campaign
         WHERE campaign.name LIKE '{safe_prefix}%'
         AND campaign.advertising_channel_type = 'SHOPPING'
+        AND campaign.status = 'ENABLED'
     """
     
     existing_names = set()

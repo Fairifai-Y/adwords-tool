@@ -499,7 +499,7 @@ def build_plans_for_labels(
 
 
 def get_existing_pmax_campaigns(client: GoogleAdsClient, customer_id: str, prefix: str) -> Set[str]:
-    """Get set of existing PMax campaign names with the specified prefix."""
+    """Get set of existing ENABLED PMax campaign names with the specified prefix."""
     ga = client.get_service("GoogleAdsService")
     
     # Escape prefix for GAQL query
@@ -510,6 +510,7 @@ def get_existing_pmax_campaigns(client: GoogleAdsClient, customer_id: str, prefi
         FROM campaign
         WHERE campaign.name LIKE '{safe_prefix}%'
         AND campaign.advertising_channel_type = 'PERFORMANCE_MAX'
+        AND campaign.status = 'ENABLED'
     """
     
     existing_names = set()
