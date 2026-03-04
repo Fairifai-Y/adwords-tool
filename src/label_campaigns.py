@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
 from google.api_core import exceptions as gax
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from google.protobuf import field_mask_pb2
 
 
@@ -105,10 +105,10 @@ def discover_all_labels(client: GoogleAdsClient, customer_id: str, label_index: 
     
     # Try to get all possible labels from Google Ads API
     all_attempts = [
-        ("Performance data (30 days)", "LAST_30_DAYS"),
-        ("Performance data (90 days)", "LAST_90_DAYS"), 
-        ("Performance data (180 days)", "LAST_180_DAYS"),
-        ("Performance data (365 days)", "LAST_365_DAYS"),
+        ("Performance data (30 days)", 30),
+        ("Performance data (90 days)", 90), 
+        ("Performance data (180 days)", 180),
+        ("Performance data (365 days)", 365),
         ("All campaigns (Shopping)", "campaign"),
         ("All campaigns (PMax)", "campaign_pmax"),
         ("Asset groups", "asset_groups"),
@@ -119,11 +119,14 @@ def discover_all_labels(client: GoogleAdsClient, customer_id: str, label_index: 
         try:
             print(f"  [INFO] Trying {attempt_name}...")
             
-            if attempt_type.startswith("LAST_"):
+            if isinstance(attempt_type, int):
+                # Use explicit date range instead of DURING LAST_N_DAYS
+                end_date = datetime.now().strftime('%Y-%m-%d')
+                start_date = (datetime.now() - timedelta(days=attempt_type)).strftime('%Y-%m-%d')
                 query = f"""
                     SELECT {field}, metrics.impressions
                     FROM shopping_performance_view
-                    WHERE segments.date DURING {attempt_type}
+                    WHERE segments.date BETWEEN '{start_date}' AND '{end_date}'
                     AND {field} IS NOT NULL
                     """
                 
@@ -292,7 +295,9 @@ def discover_labels(client: GoogleAdsClient, customer_id: str, label_index: int,
         additional_fields_str = ", " + additional_fields_str
     
     # Use longer date range for extended search to find more labels
-    date_range = "LAST_90_DAYS" if extended_search else "LAST_30_DAYS"
+    days = 90 if extended_search else 30
+    end_date = datetime.now().strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
     
     # Try shopping_performance_view first (for Shopping campaigns)
     query = f"""
@@ -309,7 +314,7 @@ def discover_labels(client: GoogleAdsClient, customer_id: str, label_index: int,
           metrics.conversions_from_interactions_rate,
           metrics.value_per_conversion
         FROM shopping_performance_view
-        WHERE segments.date DURING {date_range}
+        WHERE segments.date BETWEEN '{start_date}' AND '{end_date}'
         AND {field} IS NOT NULL
         """
     labels: Dict[str, Dict] = {}
@@ -370,6 +375,9 @@ def discover_labels(client: GoogleAdsClient, customer_id: str, label_index: int,
     if extended_search:
         try:
             print(f"  [INFO] Extended search: trying broader query for more labels...")
+            # Use explicit date range for 90 days
+            end_date_ext = datetime.now().strftime('%Y-%m-%d')
+            start_date_ext = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
             extended_query = f"""
                 SELECT
                   {field}{additional_fields_str},
@@ -384,7 +392,7 @@ def discover_labels(client: GoogleAdsClient, customer_id: str, label_index: int,
                   metrics.conversions_from_interactions_rate,
                   metrics.value_per_conversion
                 FROM shopping_performance_view
-                WHERE segments.date DURING LAST_90_DAYS
+                WHERE segments.date BETWEEN '{start_date_ext}' AND '{end_date_ext}'
                 AND {field} IS NOT NULL
                 AND metrics.impressions > 0
                 """
@@ -496,12 +504,15 @@ def _discover_label0_to_label1_percent(client: GoogleAdsClient, customer_id: str
     Returns mapping: label0 -> label1_percent_string (e.g., "15%")
     """
     ga = client.get_service("GoogleAdsService")
+    # Use explicit date range instead of DURING LAST_30_DAYS
+    end_date = datetime.now().strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
     query = (
-        "SELECT segments.product_custom_attribute0, "
-        "segments.product_custom_attribute1, metrics.impressions "
-        "FROM shopping_performance_view "
-        "WHERE segments.date DURING LAST_30_DAYS "
-        "AND segments.product_custom_attribute0 IS NOT NULL"
+        f"SELECT segments.product_custom_attribute0, "
+        f"segments.product_custom_attribute1, metrics.impressions "
+        f"FROM shopping_performance_view "
+        f"WHERE segments.date BETWEEN '{start_date}' AND '{end_date}' "
+        f"AND segments.product_custom_attribute0 IS NOT NULL"
     )
     agg: Dict[str, Dict[str, int]] = {}
     for row in ga.search(customer_id=customer_id, query=query):
