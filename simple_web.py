@@ -505,6 +505,138 @@ HTML_TEMPLATE = """
                                 </div>
                                 
                                 <div class="mb-3">
+                                    <label class="form-label">Target Countries</label>
+                                    <div class="border rounded p-3" style="background: #f8f9fa;">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxCountryNL" value="NL" checked>
+                                                    <label class="form-check-label" for="pmaxCountryNL">🇳🇱 Nederland (NL)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxCountryBE" value="BE">
+                                                    <label class="form-check-label" for="pmaxCountryBE">🇧🇪 België (BE)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxCountryDE" value="DE">
+                                                    <label class="form-check-label" for="pmaxCountryDE">🇩🇪 Duitsland (DE)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxCountryFR" value="FR">
+                                                    <label class="form-check-label" for="pmaxCountryFR">🇫🇷 Frankrijk (FR)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxCountryDK" value="DK">
+                                                    <label class="form-check-label" for="pmaxCountryDK">🇩🇰 Denemarken (DK)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxCountryIT" value="IT">
+                                                    <label class="form-check-label" for="pmaxCountryIT">🇮🇹 Italië (IT)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxCountrySE" value="SE">
+                                                    <label class="form-check-label" for="pmaxCountrySE">🇸🇪 Zweden (SE)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxCountryPL" value="PL">
+                                                    <label class="form-check-label" for="pmaxCountryPL">🇵🇱 Polen (PL)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxCountryAT" value="AT">
+                                                    <label class="form-check-label" for="pmaxCountryAT">🇦🇹 Oostenrijk (AT)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxCountryCH" value="CH">
+                                                    <label class="form-check-label" for="pmaxCountryCH">🇨🇭 Zwitserland (CH)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxCountryES" value="ES">
+                                                    <label class="form-check-label" for="pmaxCountryES">🇪🇸 Spanje (ES)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxCountryGB" value="GB">
+                                                    <label class="form-check-label" for="pmaxCountryGB">🇬🇧 Verenigd Koninkrijk (GB)</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllPmaxCountries()">Alles selecteren</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllPmaxCountries()">Alles deselecteren</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Target Languages</label>
+                                    <div class="border rounded p-3" style="background: #f8f9fa;">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxLangNL" value="nl" checked>
+                                                    <label class="form-check-label" for="pmaxLangNL">🇳🇱 Nederlands (nl)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxLangEN" value="en">
+                                                    <label class="form-check-label" for="pmaxLangEN">🇬🇧 Engels (en)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxLangDE" value="de">
+                                                    <label class="form-check-label" for="pmaxLangDE">🇩🇪 Duits (de)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxLangFR" value="fr">
+                                                    <label class="form-check-label" for="pmaxLangFR">🇫🇷 Frans (fr)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxLangDA" value="da">
+                                                    <label class="form-check-label" for="pmaxLangDA">🇩🇰 Deens (da)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxLangIT" value="it">
+                                                    <label class="form-check-label" for="pmaxLangIT">🇮🇹 Italiaans (it)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxLangSV" value="sv">
+                                                    <label class="form-check-label" for="pmaxLangSV">🇸🇪 Zweeds (sv)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxLangPL" value="pl">
+                                                    <label class="form-check-label" for="pmaxLangPL">🇵🇱 Pools (pl)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxLangES" value="es">
+                                                    <label class="form-check-label" for="pmaxLangES">🇪🇸 Spaans (es)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxLangPT" value="pt">
+                                                    <label class="form-check-label" for="pmaxLangPT">🇵🇹 Portugees (pt)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxLangRU" value="ru">
+                                                    <label class="form-check-label" for="pmaxLangRU">🇷🇺 Russisch (ru)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="pmaxLangCS" value="cs">
+                                                    <label class="form-check-label" for="pmaxLangCS">🇨🇿 Tsjechisch (cs)</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllPmaxLanguages()">Alles selecteren</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllPmaxLanguages()">Alles deselecteren</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
                                     <label class="form-label">Feed Label</label>
                                     <select class="form-select" id="pmaxFeedLabel">
                                         <option value="nl">🇳🇱 Nederlands (nl)</option>
@@ -1245,6 +1377,32 @@ HTML_TEMPLATE = """
             const checkboxes = document.querySelectorAll('input[id^="lang"]:checked');
             return Array.from(checkboxes).map(cb => cb.value);
         }
+        
+        function getSelectedPmaxCountries() {
+            const checkboxes = document.querySelectorAll('input[id^="pmaxCountry"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+        
+        function getSelectedPmaxLanguages() {
+            const checkboxes = document.querySelectorAll('input[id^="pmaxLang"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+        
+        function selectAllPmaxCountries() {
+            document.querySelectorAll('input[id^="pmaxCountry"]').forEach(cb => cb.checked = true);
+        }
+        
+        function deselectAllPmaxCountries() {
+            document.querySelectorAll('input[id^="pmaxCountry"]').forEach(cb => cb.checked = false);
+        }
+        
+        function selectAllPmaxLanguages() {
+            document.querySelectorAll('input[id^="pmaxLang"]').forEach(cb => cb.checked = true);
+        }
+        
+        function deselectAllPmaxLanguages() {
+            document.querySelectorAll('input[id^="pmaxLang"]').forEach(cb => cb.checked = false);
+        }
 
         // Feed label handling
         document.getElementById('feedLabel').addEventListener('change', function() {
@@ -1306,6 +1464,8 @@ HTML_TEMPLATE = """
                         daily_budget: parseFloat(document.getElementById('pmaxDailyBudget').value),
                         roas_factor: parseFloat(document.getElementById('pmaxRoasFactor').value) || 0,
                         start_enabled: document.getElementById('pmaxStartEnabled').checked,
+                        target_languages: getSelectedPmaxLanguages().join(','),
+                        target_countries: getSelectedPmaxCountries().join(','),
                         feed_label: getPmaxFeedLabel()
                     })
                 });
@@ -1377,6 +1537,8 @@ HTML_TEMPLATE = """
                         daily_budget: parseFloat(document.getElementById('pmaxDailyBudget').value),
                         roas_factor: parseFloat(document.getElementById('pmaxRoasFactor').value) || 0,
                         start_enabled: document.getElementById('pmaxStartEnabled').checked,
+                        target_languages: getSelectedPmaxLanguages().join(','),
+                        target_countries: getSelectedPmaxCountries().join(','),
                         feed_label: getPmaxFeedLabel()
                     })
                 });
@@ -2161,6 +2323,17 @@ def preview_campaigns():
             # Add ROAS factor if specified
             if data.get('roas_factor') and data.get('roas_factor') != 0:
                 cmd.extend(['--roas-factor', str(data.get('roas_factor'))])
+            
+            # Add target languages and countries for PMax campaigns
+            if data.get('target_languages'):
+                cmd.extend(['--target-languages', data.get('target_languages')])
+            
+            if data.get('target_countries'):
+                cmd.extend(['--target-countries', data.get('target_countries')])
+            
+            # Add feed-label for pmax-all-labels campaigns
+            if data.get('feed_label'):
+                cmd.extend(['--feed-label', data.get('feed_label')])
         elif campaign_type == 'product-type':
             # Route to Standard Shopping triplet creator
             cmd = [
@@ -2289,6 +2462,13 @@ def create_campaigns():
             # Add start-enabled flag if checked
             if data.get('start_enabled'):
                 cmd.append('--start-enabled')
+            
+            # Add target languages and countries for PMax campaigns
+            if data.get('target_languages'):
+                cmd.extend(['--target-languages', data.get('target_languages')])
+            
+            if data.get('target_countries'):
+                cmd.extend(['--target-countries', data.get('target_countries')])
             
             # Add feed-label for pmax-all-labels campaigns
             if data.get('feed_label'):
