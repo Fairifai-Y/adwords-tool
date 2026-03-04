@@ -22,6 +22,7 @@ import json
 import subprocess
 import sys
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -292,6 +293,12 @@ def main() -> None:
     if not config_path.exists():
         print(f"[ERROR] Config file not found: {config_path}")
         sys.exit(1)
+
+    # Only run on Thursday (weekday: Monday=0 ... Sunday=6)
+    today_utc = datetime.utcnow().weekday()
+    if today_utc != 3:
+        print("Niet donderdag (UTC) → weekly automation wordt vandaag overgeslagen.")
+        return
 
     jobs = _load_config(config_path)
     if not jobs:
