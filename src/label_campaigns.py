@@ -498,6 +498,30 @@ def build_plans_for_labels(
     return plans
 
 
+def get_existing_pmax_campaigns(client: GoogleAdsClient, customer_id: str, prefix: str) -> Set[str]:
+    """Get set of existing PMax campaign names with the specified prefix."""
+    ga = client.get_service("GoogleAdsService")
+    
+    # Escape prefix for GAQL query
+    safe_prefix = prefix.replace("'", "\\'").replace("\\", "\\\\")
+    
+    query = f"""
+        SELECT campaign.name
+        FROM campaign
+        WHERE campaign.name LIKE '{safe_prefix}%'
+        AND campaign.advertising_channel_type = 'PERFORMANCE_MAX'
+    """
+    
+    existing_names = set()
+    try:
+        for row in ga.search(customer_id=customer_id, query=query):
+            existing_names.add(row.campaign.name)
+    except Exception as e:
+        print(f"[WARN] Kon bestaande PMax campagnes niet ophalen: {e}")
+    
+    return existing_names
+
+
 def _discover_label0_to_label1_percent(client: GoogleAdsClient, customer_id: str) -> Dict[str, str]:
     """For each custom_label0, find the dominant custom_label1 value by impressions.
 
@@ -1326,6 +1350,40 @@ def main() -> None:
             # Old format with just impressions
             print(f"  {label!r}: {data} impressions")
 
+    # Check for existing campaigns and filter them out
+    print(f"\nControleren op bestaande PMax campagnes...")
+    existing_campaigns = get_existing_pmax_campaigns(client, customer_id, args.prefix)
+    print(f"  Gevonden {len(existing_campaigns)} bestaande PMax campagne(s) met prefix '{args.prefix}'")
+    
+    original_count = len(plans)
+    filtered_plans = []
+    skipped_count = 0
+    
+    for plan in plans:
+        # Check if a campaign with this label already exists
+        # We check by extracting the label from the campaign name pattern: "{prefix} - {label} - {timestamp}"
+        # But since timestamp changes, we check if any existing campaign has the same label
+        label_exists = False
+        for existing_name in existing_campaigns:
+            # Extract label from existing campaign name: "{prefix} - {label} - {timestamp}"
+            # Compare by checking if the label value appears in the existing campaign name
+            if plan.label_value in existing_name:
+                label_exists = True
+                break
+        
+        if label_exists:
+            skipped_count += 1
+            continue
+        
+        filtered_plans.append(plan)
+    
+    plans = filtered_plans
+    
+    if skipped_count > 0:
+        print(f"\n  Gefilterd: {original_count} -> {len(plans)} campagnes")
+        print(f"    Overgeslagen (bestaan al): {skipped_count}")
+        print(f"    Te maken: {len(plans)}")
+    
     print("\nCampaign-plannen (dry-run):")
     for plan in plans:
         roas = f", tROAS={plan.target_roas}" if plan.target_roas else ""
