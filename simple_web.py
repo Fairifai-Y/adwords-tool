@@ -116,6 +116,9 @@ HTML_TEMPLATE = """
                         <a class="nav-link" href="#section-roas">Portfolio ROAS</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="#section-pmax-roas">PMax ROAS</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="#section-cleanup">Cleanup</a>
                     </li>
                 </ul>
@@ -869,6 +872,87 @@ HTML_TEMPLATE = """
                                 <h6>[RESULTS] Adjustment Results</h6>
                                 <div id="adjustRoasResults" class="border rounded p-3" style="background: #f8f9fa; min-height: 200px;">
                                     <small class="text-muted">Vul het formulier in en klik op "Adjust Portfolio ROAS" om te beginnen...</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PMax ROAS Adjustment -->
+        <div class="row mt-4" id="section-pmax-roas">
+            <div class="col-12">
+                <div class="card tool-card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">🚀 PMax ROAS Adjustment</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>[ADJUST] Adjust PMax Campaign ROAS</h6>
+                                <p class="text-muted">Pas de ROAS aan voor PMax campagnes die target_roas direct in de campagne hebben ingesteld (geen portfolio strategies).</p>
+                                
+                                <form id="adjustPmaxRoasForm" onsubmit="event.preventDefault(); adjustPmaxRoas();">
+                                    <div class="mb-3">
+                                        <label class="form-label">Customer ID *</label>
+                                        <input type="text" class="form-control" id="adjustPmaxRoasCustomerId" required placeholder="123-456-7890">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Campaign Prefix (optioneel)</label>
+                                        <input type="text" class="form-control" id="adjustPmaxRoasPrefix" placeholder="Bijv. 'PMax ALL' (laat leeg voor alle PMax campagnes)">
+                                        <small class="form-text text-muted">
+                                            Filter op campagnes met dit prefix. Laat leeg om alle PMax campagnes met target_roas aan te passen.
+                                        </small>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="adjustPmaxRoasReset">
+                                            <label class="form-check-label" for="adjustPmaxRoasReset">
+                                                <strong>Eerst resetten naar standaard waarde (op basis van seller marge)</strong>
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted d-block mb-2">
+                                            Reset alle campagnes naar standaard tROAS berekend uit custom_label_1 (marge) per seller. Daarna wordt het percentage (hieronder) toegepast.
+                                        </small>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Percentage Aanpassing (±%)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">±</span>
+                                            <input type="number" class="form-control" id="adjustPmaxRoasPercentage" step="1" min="-50" max="50" placeholder="0" value="0">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            Zonder reset: percentage op huidige ROAS. Met reset: eerst naar standaard (marge), dan ±% daarop (bijv. reset + 10%).
+                                        </small>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="adjustPmaxRoasApply">
+                                            <label class="form-check-label" for="adjustPmaxRoasApply">
+                                                <strong>Apply Changes (anders preview/dry-run)</strong>
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            Als niet aangevinkt: alleen preview (geen wijzigingen). Als aangevinkt: wijzigingen worden daadwerkelijk doorgevoerd.
+                                        </small>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-success">
+                                        [PREVIEW/APPLY] Adjust PMax ROAS
+                                    </button>
+                                </form>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6>[RESULTS] PMax ROAS Adjustment Results</h6>
+                                <div id="adjustPmaxRoasResults" class="border rounded p-3" style="background: #f8f9fa; min-height: 200px;">
+                                    <small class="text-muted">Vul het formulier in en klik op "Adjust PMax ROAS" om te beginnen...</small>
                                 </div>
                             </div>
                         </div>
@@ -1952,6 +2036,73 @@ HTML_TEMPLATE = """
                 `;
             }
         }
+        
+        // PMax ROAS Adjustment Functions
+        async function adjustPmaxRoas() {
+            const customerId = document.getElementById('adjustPmaxRoasCustomerId').value.trim();
+            const prefix = document.getElementById('adjustPmaxRoasPrefix').value.trim();
+            const reset = document.getElementById('adjustPmaxRoasReset').checked;
+            const percentageInput = document.getElementById('adjustPmaxRoasPercentage').value;
+            const percentage = percentageInput === '' || percentageInput === null ? 0 : parseFloat(percentageInput);
+            const apply = document.getElementById('adjustPmaxRoasApply').checked;
+            
+            if (!customerId) {
+                alert('Vul een Customer ID in.');
+                return;
+            }
+            
+            if (!reset && (isNaN(percentage) || percentage === 0)) {
+                alert('Vul een percentage in (niet 0) of vink "Eerst resetten" aan (of beide).');
+                return;
+            }
+            
+            const resultsContainer = document.getElementById('adjustPmaxRoasResults');
+            const actionText = reset ? (percentage !== 0 ? 'gereset en aangepast' : 'gereset') : 'aangepast';
+            resultsContainer.innerHTML = `<div class="text-center"><div class="spinner-border text-success" role="status"></div><br><small>PMax ROAS wordt ${actionText}...</small></div>`;
+            
+            try {
+                const response = await fetch('/api/adjust-pmax-roas', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        customer_id: customerId,
+                        prefix: prefix || null,
+                        percentage: percentage,
+                        reset: reset,
+                        apply: apply
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultsContainer.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6>✅ PMax ROAS Adjustment ${apply ? 'Completed' : 'Preview'}</h6>
+                            <pre style="max-height: 400px; overflow-y: auto; white-space: pre-wrap;">${result.output}</pre>
+                            <hr>
+                            <small>Command: ${result.command}</small>
+                        </div>
+                    `;
+                } else {
+                    resultsContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6>❌ PMax ROAS Adjustment Failed</h6>
+                            <pre>${result.error || result.output}</pre>
+                            <hr>
+                            <small>Command: ${result.command || 'N/A'}</small>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>❌ Network Error</h6>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
 
         function viewWeeklyChanges() {
             // This function can be expanded to show more detailed information
@@ -2303,7 +2454,7 @@ def preview_campaigns():
                 '--apply', 'false'  # Preview mode
             ]
         elif campaign_type == 'pmax-all-labels':
-            # For PMax ALL Labels, we automatically discover labels using extended search
+            # For PMax ALL Labels, we automatically discover labels from last 30 days
             # No need for manual label selection - the script will discover all labels automatically
             cmd = [
                 python_exe, 'src/label_campaigns.py',
@@ -2312,7 +2463,6 @@ def preview_campaigns():
                 '--prefix', data.get('prefix', 'PMax ALL'),
                 '--daily-budget', str(data.get('daily_budget', 5.0)),
                 '--pmax-type', data.get('pmax_type', 'feed-only'),
-                '--extended-search',  # Automatically discover all labels
                 '--apply', 'false'  # Preview mode
             ]
             
@@ -2438,7 +2588,7 @@ def create_campaigns():
                 '--apply', 'true'
             ]
         elif campaign_type == 'pmax-all-labels':
-            # For PMax ALL Labels, we automatically discover labels using extended search
+            # For PMax ALL Labels, we automatically discover labels from last 30 days
             # No need for manual label selection - the script will discover all labels automatically
             cmd = [
                 python_exe, 'src/label_campaigns.py',
@@ -2447,7 +2597,6 @@ def create_campaigns():
                 '--prefix', data.get('prefix', 'PMax ALL'),
                 '--daily-budget', str(data.get('daily_budget', 5.0)),
                 '--pmax-type', data.get('pmax_type', 'feed-only'),
-                '--extended-search',  # Automatically discover all labels
                 '--apply', 'true'
             ]
             
@@ -2718,6 +2867,60 @@ def adjust_portfolio_roas():
         
     except Exception as e:
         print(f"Adjust portfolio ROAS exception: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/adjust-pmax-roas', methods=['POST'])
+def adjust_pmax_roas():
+    """Adjust tROAS for PMax campaigns with target_roas set directly in campaign."""
+    try:
+        data = request.get_json()
+        customer_id = data.get('customer_id')
+        prefix = data.get('prefix')
+        percentage = data.get('percentage')
+        reset = data.get('reset', False)
+        apply = data.get('apply', False)
+        
+        if not customer_id:
+            return jsonify({'success': False, 'error': 'Customer ID is required'})
+        
+        if not reset and (percentage is None or percentage == 0):
+            return jsonify({'success': False, 'error': 'Vul een percentage in (niet 0) of vink "Eerst resetten" aan (of beide).'})
+        
+        python_exe = get_python_executable()
+        print(f"DEBUG: Detected Python executable: {python_exe}")
+        # Build command: reset and/or percentage (both allowed: eerst reset, dan percentage)
+        cmd = [
+            python_exe,
+            'src/adjust_pmax_roas.py',
+            '--customer', customer_id
+        ]
+        
+        if prefix:
+            cmd.extend(['--prefix', prefix])
+        if reset:
+            cmd.append('--reset')
+        if percentage is not None:
+            cmd.extend(['--percentage', str(percentage)])
+        
+        if apply:
+            cmd.append('--apply')
+        
+        print(f"Running command: {' '.join(cmd)}")
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path(__file__).parent)
+        
+        print(f"Return code: {result.returncode}")
+        print(f"Stdout: {result.stdout}")
+        print(f"Stderr: {result.stderr}")
+        
+        return jsonify({
+            'success': result.returncode == 0,
+            'output': result.stdout if result.returncode == 0 else result.stderr,
+            'command': ' '.join(cmd)
+        })
+        
+    except Exception as e:
+        print(f"Adjust PMax ROAS exception: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/download-csv/<filename>')
