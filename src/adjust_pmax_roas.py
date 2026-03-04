@@ -150,12 +150,13 @@ def _calculate_standard_troas(margin_percentage: float) -> float:
 
 
 def find_pmax_campaigns_with_roas(client: GoogleAdsClient, customer_id: str, prefix: Optional[str] = None) -> List[Dict]:
-    """Find all PMax campaigns with target_roas set directly in the campaign."""
+    """Find all ENABLED PMax campaigns with target_roas set directly in the campaign."""
     ga = client.get_service("GoogleAdsService")
     
     # Build query
     where_clause = (
         "campaign.advertising_channel_type = 'PERFORMANCE_MAX' "
+        "AND campaign.status = 'ENABLED' "
         "AND campaign.maximize_conversion_value.target_roas IS NOT NULL"
     )
     

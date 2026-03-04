@@ -173,6 +173,30 @@ def find_troas_strategies(client: GoogleAdsClient, customer_id: str) -> List[Dic
     return strategies
 
 
+def find_enabled_troas_strategy_resource_names(client: GoogleAdsClient, customer_id: str) -> set[str]:
+    """Find resource_names of TARGET_ROAS strategies that are attached to at least one ENABLED campaign."""
+    ga = client.get_service("GoogleAdsService")
+
+    query = """
+        SELECT
+            campaign.bidding_strategy
+        FROM campaign
+        WHERE campaign.status = 'ENABLED'
+          AND campaign.bidding_strategy != ''
+    """
+
+    strategy_rns: set[str] = set()
+    try:
+        for row in ga.search(customer_id=customer_id, query=query):
+            bs_rn = row.campaign.bidding_strategy
+            if bs_rn:
+                strategy_rns.add(bs_rn)
+    except Exception as e:
+        print(f"[WARN] Kon ENABLED campagnes met bidding strategies niet ophalen: {e}")
+
+    return strategy_rns
+
+
 def adjust_strategy_roas(
     client: GoogleAdsClient,
     customer_id: str,
@@ -252,9 +276,21 @@ def main() -> None:
     # Find all tROAS strategies
     print(f"\nZoeken naar portfolio TARGET_ROAS strategies met 'tROAS' in de naam...")
     strategies = find_troas_strategies(client, customer_id)
-    
+
     if not strategies:
         print("Geen strategies gevonden met 'tROAS' in de naam.")
+        return
+
+    # Filter strategies to only those that are attached to at least one ENABLED campaign
+    print("\nFilteren op strategies die gekoppeld zijn aan ENABLED campagnes...")
+    enabled_strategy_rns = find_enabled_troas_strategy_resource_names(client, customer_id)
+    if enabled_strategy_rns:
+        strategies = [s for s in strategies if s["resource_name"] in enabled_strategy_rns]
+    else:
+        strategies = []
+    
+    if not strategies:
+        print("Geen strategies gevonden die gekoppeld zijn aan ENABLED campagnes.")
         return
     
     print(f"\nGevonden {len(strategies)} strategy(s):")
