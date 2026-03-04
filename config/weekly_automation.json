@@ -409,7 +409,7 @@
       "enabled": true,
       "customer_id": "156-149-5323",
       "reset": true,
-      "percentage": 0.0
+      "percentage": -25
     },
     "pmax_roas": {
       "enabled": false,
