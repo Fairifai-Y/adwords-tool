@@ -1330,25 +1330,26 @@ HTML_TEMPLATE = """
         let sellerClicksChart = null;
 
         function parseSellerClicksOutput(output) {
-            const lines = output.split(/\r?\n/);
+            const lines = output.split('\n');
             const dates = [];
             const clicks = [];
             const impressions = [];
             const cost = [];
 
-            const dateLineRegex = /^(\d{4}-\d{2}-\d{2})\s+(.+)$/;
-
             for (const line of lines) {
                 const trimmed = line.trim();
                 if (!trimmed) continue;
-                const m = trimmed.match(dateLineRegex);
-                if (!m) continue;
 
-                const dateStr = m[1];
-                const rest = m[2].trim().split(/\s+/);
+                // Verwacht formaat:
+                // YYYY-MM-DD  Impr  Clicks  Conv  Value  Cost
+                if (trimmed.length < 12 || trimmed[4] !== '-' || trimmed[7] !== '-') {
+                    continue;
+                }
+
+                const dateStr = trimmed.substring(0, 10);
+                const rest = trimmed.substring(10).trim().split(/\s+/);
                 if (rest.length < 5) continue;
 
-                // rest: [impr, clicks, conv, value, cost]
                 const imprStr = rest[0].replace(/,/g, '');
                 const clicksStr = rest[1].replace(/,/g, '');
                 const costStr = rest[4].replace(/,/g, '');
