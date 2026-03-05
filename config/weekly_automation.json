@@ -356,7 +356,7 @@
       "prefix": "PMax ALL",
       "label_index": 0,
       "daily_budget": 5.0,
-      "feed_label": "nl",",
+      "feed_label": "nl",
       "target_countries": "AT",
       "target_languages": "de",
       "roas_factor": 0.0,
