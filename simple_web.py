@@ -1377,10 +1377,6 @@ HTML_TEMPLATE = """
                         <pre class="small" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;">${escapedOutput}</pre>
                         <small class="text-muted d-block mt-2">Command: ${result.command || ''}</small>
                     `;
-                    
-                    // Update chart onder de tekstuele resultaten
-                    const parsed = parseSellerClicksOutput(output);
-                    renderSellerClicksChart(parsed);
                 } else {
                     resultsContainer.innerHTML = `
                         <div class="alert alert-danger">
