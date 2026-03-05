@@ -107,19 +107,26 @@ def _load_sendgrid_config() -> Tuple[Optional[str], Optional[str], Optional[str]
         print(f"[SendGrid] Kon google-ads.yaml niet lezen ({cfg_path}): {e}")
         return api_key, from_email, to_email
 
+    def _parse_value(line: str) -> str:
+        # Support both "KEY=value" and "KEY: value" syntaxes
+        if "=" in line:
+            _, _, v = line.partition("=")
+        elif ":" in line:
+            _, _, v = line.partition(":")
+        else:
+            v = ""
+        return v.strip().strip('"').strip("'")
+
     for raw in text.splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
         if line.startswith("SENDGRID_API_KEY"):
-            _, _, val = line.partition("=")
-            api_key = val.strip() or None
+            api_key = _parse_value(line) or None
         elif line.startswith("SENDGRID_FROM"):
-            _, _, val = line.partition("=")
-            from_email = val.strip() or None
+            from_email = _parse_value(line) or None
         elif line.startswith("SENDGRID_TO"):
-            _, _, val = line.partition("=")
-            to_email = val.strip() or None
+            to_email = _parse_value(line) or None
 
     return api_key, from_email, to_email
 
