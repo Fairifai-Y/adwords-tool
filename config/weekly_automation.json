@@ -241,7 +241,7 @@
       "enabled": true,
       "customer_id": "747-204-9709",
       "reset": true,
-      "percentage": -25
+      "percentage": -28
     },
     "pmax_roas": {
       "enabled": false,
@@ -332,7 +332,7 @@
       "customer_id": "328-789-8980",
       "prefix": "PMax Feed",
       "reset": false,
-      "percentage": -10
+      "percentage": -25
     }
   },
   {
@@ -518,10 +518,10 @@
       "start_enabled": false
     },
     "pmax": {
-      "enabled": false,
+      "enabled": true,
       "customer_id": "345-644-3586",
       "merchant_id": "",
-      "prefix": "PMax ALL",
+      "prefix": "PMax Feed",
       "label_index": 0,
       "daily_budget": 5.0,
       "feed_label": "fr",
@@ -529,7 +529,7 @@
       "target_languages": "fr",
       "roas_factor": 0.0,
       "pmax_type": "feed-only",
-      "start_enabled": false
+      "start_enabled": true
     },
     "portfolio_roas": {
       "enabled": false,
@@ -538,11 +538,11 @@
       "percentage": 0.0
     },
     "pmax_roas": {
-      "enabled": false,
+      "enabled": true,
       "customer_id": "345-644-3586",
-      "prefix": "PMax ALL",
+      "prefix": "PMax Feed",
       "reset": false,
-      "percentage": 0.0
+      "percentage": -20
     }
   },
   {
