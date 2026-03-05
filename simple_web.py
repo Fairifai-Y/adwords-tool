@@ -83,6 +83,7 @@ HTML_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Google Ads Tools - SDeal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         .tool-card { border: none; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 30px; }
         .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 25px; }
@@ -110,7 +111,7 @@ HTML_TEMPLATE = """
                         <a class="nav-link" href="#section-pmax">PMax Creation</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#section-seller-clicks">Seller Kliks</a>
+                        <a class="nav-link" href="/seller-clicks#section-seller-clicks">Seller Kliks</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#section-roas">Portfolio ROAS</a>
@@ -1019,6 +1020,9 @@ HTML_TEMPLATE = """
                                         Vul het formulier in en klik op "Seller Klik-analyse" om de tijdreeks per dag te zien.
                                     </small>
                                 </div>
+                                <div class="mt-3">
+                                    <canvas id="sellerClicksChart" height="160"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1323,6 +1327,122 @@ HTML_TEMPLATE = """
         }
 
         // Seller Clicks Timeseries
+        let sellerClicksChart = null;
+
+        function parseSellerClicksOutput(output) {
+            const lines = output.split(/\r?\n/);
+            const dates = [];
+            const clicks = [];
+            const impressions = [];
+            const cost = [];
+
+            const dateLineRegex = /^(\d{4}-\d{2}-\d{2})\s+(.+)$/;
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+                const m = trimmed.match(dateLineRegex);
+                if (!m) continue;
+
+                const dateStr = m[1];
+                const rest = m[2].trim().split(/\s+/);
+                if (rest.length < 5) continue;
+
+                // rest: [impr, clicks, conv, value, cost]
+                const imprStr = rest[0].replace(/,/g, '');
+                const clicksStr = rest[1].replace(/,/g, '');
+                const costStr = rest[4].replace(/,/g, '');
+
+                const impr = parseInt(imprStr, 10);
+                const clk = parseInt(clicksStr, 10);
+                const cst = parseFloat(costStr.replace(',', '.'));
+
+                if (isNaN(impr) || isNaN(clk) || isNaN(cst)) continue;
+
+                dates.push(dateStr);
+                impressions.push(impr);
+                clicks.push(clk);
+                cost.push(cst);
+            }
+
+            return { dates, clicks, impressions, cost };
+        }
+
+        function renderSellerClicksChart(parsed) {
+            const ctx = document.getElementById('sellerClicksChart');
+            if (!ctx) return;
+
+            if (!parsed.dates.length) {
+                if (sellerClicksChart) {
+                    sellerClicksChart.destroy();
+                    sellerClicksChart = null;
+                }
+                return;
+            }
+
+            if (sellerClicksChart) {
+                sellerClicksChart.destroy();
+            }
+
+            sellerClicksChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: parsed.dates,
+                    datasets: [
+                        {
+                            label: 'Clicks per dag',
+                            data: parsed.clicks,
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            tension: 0.2,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: 'Kosten (€)',
+                            data: parsed.cost,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            tension: 0.2,
+                            yAxisID: 'y1',
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    stacked: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Clicks',
+                            },
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Kosten (€)',
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                        },
+                    },
+                },
+            });
+        }
         async function fetchSellerClicksTimeseries() {
             const customerId = document.getElementById('sellerClicksCustomerId').value.trim();
             const campaignName = document.getElementById('sellerClicksCampaignName').value.trim();
@@ -1377,6 +1497,10 @@ HTML_TEMPLATE = """
                         <pre class="small" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;">${escapedOutput}</pre>
                         <small class="text-muted d-block mt-2">Command: ${result.command || ''}</small>
                     `;
+                    
+                    // Update chart onder de tekstuele resultaten
+                    const parsed = parseSellerClicksOutput(output);
+                    renderSellerClicksChart(parsed);
                 } else {
                     resultsContainer.innerHTML = `
                         <div class="alert alert-danger">
@@ -2255,6 +2379,12 @@ HTML_TEMPLATE = """
 
 @app.route('/')
 def index():
+    return render_template_string(HTML_TEMPLATE)
+
+
+@app.route('/seller-clicks')
+def seller_clicks_page():
+    """Separate URL for Seller Klik-analyse; same template, direct anchor via URL fragment."""
     return render_template_string(HTML_TEMPLATE)
 
 @app.route('/api/discover-labels', methods=['POST'])
