@@ -24,7 +24,9 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
+from urllib import request as urlrequest, error as urlerror
+import ssl
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -84,6 +86,95 @@ class WeeklyJob:
     pmax: Optional[PMaxConfig] = None
     portfolio_roas: Optional[PortfolioRoasConfig] = None
     pmax_roas: Optional[PMaxRoasConfig] = None
+
+
+def _load_sendgrid_config() -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """Load SendGrid API key and optional from/to emails from google-ads.yaml.
+
+    Expected lines in config/google-ads.yaml:
+        SENDGRID_API_KEY=...
+        SENDGRID_FROM=you@example.com      (optional but recommended)
+        SENDGRID_TO=recipient@example.com  (optional but recommended)
+    """
+    cfg_path = PROJECT_ROOT / "config" / "google-ads.yaml"
+    api_key: Optional[str] = None
+    from_email: Optional[str] = None
+    to_email: Optional[str] = None
+
+    try:
+        text = cfg_path.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"[SendGrid] Kon google-ads.yaml niet lezen ({cfg_path}): {e}")
+        return api_key, from_email, to_email
+
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("SENDGRID_API_KEY"):
+            _, _, val = line.partition("=")
+            api_key = val.strip() or None
+        elif line.startswith("SENDGRID_FROM"):
+            _, _, val = line.partition("=")
+            from_email = val.strip() or None
+        elif line.startswith("SENDGRID_TO"):
+            _, _, val = line.partition("=")
+            to_email = val.strip() or None
+
+    return api_key, from_email, to_email
+
+
+def _send_summary_email(subject: str, body: str) -> None:
+    """Send a short summary email via SendGrid if configured.
+
+    Keeps output small so it is suitable as a cron notification.
+    """
+    api_key, from_email, to_email = _load_sendgrid_config()
+
+    if not api_key:
+        print("[SendGrid] Geen SENDGRID_API_KEY gevonden in config/google-ads.yaml → e-mail wordt overgeslagen.")
+        return
+    if not from_email or not to_email:
+        print("[SendGrid] SENDGRID_FROM en/of SENDGRID_TO ontbreken in config/google-ads.yaml → e-mail wordt overgeslagen.")
+        return
+
+    url = "https://api.sendgrid.com/v3/mail/send"
+    payload = {
+        "personalizations": [
+            {
+                "to": [{"email": to_email}],
+            }
+        ],
+        "from": {"email": from_email},
+        "subject": subject,
+        "content": [
+            {
+                "type": "text/plain",
+                "value": body,
+            }
+        ],
+    }
+
+    data = json.dumps(payload).encode("utf-8")
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    req = urlrequest.Request(url, data=data, headers=headers, method="POST")
+    try:
+        # Explicit SSL context for PythonAnywhere / stricter environments
+        ctx = ssl.create_default_context()
+        with urlrequest.urlopen(req, context=ctx) as resp:
+            print(f"[SendGrid] E-mail verstuurd, status {resp.status}")
+    except urlerror.HTTPError as e:
+        try:
+            err_body = e.read().decode("utf-8", errors="ignore")
+        except Exception:
+            err_body = "<no body>"
+        print(f"[SendGrid] HTTPError bij versturen e-mail: {e.code} {e.reason} - {err_body}")
+    except Exception as e:
+        print(f"[SendGrid] Onbekende fout bij versturen e-mail: {e}")
 
 
 def _load_config(path: Path) -> List[WeeklyJob]:
@@ -313,21 +404,53 @@ def main() -> None:
     print(f"Using Python executable: {python_exe}")
     print(f"Loaded {len(jobs)} job(s) from {config_path}")
 
+    start_ts = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    summary_lines: List[str] = []
+
     for job in jobs:
         print(f"\n================= JOB: {job.name} =================")
+        executed_steps: List[str] = []
+
         # 1) Campagne creatie
         if job.standard:
             run_standard(job, job.standard, python_exe)
+            executed_steps.append("standard")
         if job.pmax:
             run_pmax(job, job.pmax, python_exe)
+            executed_steps.append("pmax")
 
         # 2) ROAS adjustments
         if job.portfolio_roas:
             run_portfolio_roas(job, job.portfolio_roas, python_exe)
+            executed_steps.append("portfolio_roas")
         if job.pmax_roas:
             run_pmax_roas(job, job.pmax_roas, python_exe)
+            executed_steps.append("pmax_roas")
+
+        if executed_steps:
+            summary_lines.append(f"{job.name}: " + ", ".join(executed_steps))
+        else:
+            summary_lines.append(f"{job.name}: geen stappen uitgevoerd (alles disabled)")
 
     print("\nAlle jobs voltooid.")
+
+    end_ts = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    summary_body = [
+        "Weekly automation voltooid.",
+        "",
+        f"Start (UTC): {start_ts}",
+        f"Einde (UTC): {end_ts}",
+        "",
+        f"Config: {config_path}",
+        "",
+        "Jobs:",
+    ]
+    summary_body.extend(f"- {line}" for line in summary_lines)
+
+    _send_summary_email(
+        subject="Weekly automation voltooid",
+        body="\n".join(summary_body),
+    )
 
 
 if __name__ == "__main__":
