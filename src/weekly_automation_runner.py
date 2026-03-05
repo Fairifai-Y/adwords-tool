@@ -24,9 +24,10 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib import request as urlrequest, error as urlerror
 import ssl
+import re
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -259,7 +260,8 @@ def _load_config(path: Path) -> List[WeeklyJob]:
     return jobs
 
 
-def _run(cmd: list[str], cwd: Path) -> int:
+def _run(cmd: list[str], cwd: Path) -> tuple[int, str, str]:
+    """Run a subprocess command and return (exit_code, stdout, stderr)."""
     print(f"\n[RUN] {' '.join(cmd)}")
     result = subprocess.run(cmd, cwd=cwd, text=True, capture_output=True)
     print(f"[EXIT] {result.returncode}")
@@ -269,7 +271,7 @@ def _run(cmd: list[str], cwd: Path) -> int:
     if result.stderr:
         print("[STDERR]")
         print(result.stderr)
-    return result.returncode
+    return result.returncode, result.stdout or "", result.stderr or ""
 
 
 def run_standard(job: WeeklyJob, cfg: StandardConfig, python_exe: str) -> None:
@@ -305,7 +307,7 @@ def run_standard(job: WeeklyJob, cfg: StandardConfig, python_exe: str) -> None:
     _run(cmd, PROJECT_ROOT)
 
 
-def run_pmax(job: WeeklyJob, cfg: PMaxConfig, python_exe: str) -> None:
+def run_pmax(job: WeeklyJob, cfg: PMaxConfig, python_exe: str) -> Dict[str, int]:
     print(f"\n==== PMax ALL Labels creation for job '{job.name}' ====")
     cmd = [
         python_exe,
@@ -338,10 +340,37 @@ def run_pmax(job: WeeklyJob, cfg: PMaxConfig, python_exe: str) -> None:
     if cfg.roas_factor:
         cmd.extend(["--roas-factor", str(cfg.roas_factor)])
 
-    _run(cmd, PROJECT_ROOT)
+    code, stdout, _ = _run(cmd, PROJECT_ROOT)
+
+    stats = {
+        "pmax_labels_total": 0,
+        "pmax_plans_total": 0,
+        "pmax_plans_after_filter": 0,
+        "pmax_to_make": 0,
+    }
+
+    # Parse label discovery summary
+    m = re.search(r"Total labels gevonden:\s*(\d+)", stdout)
+    if m:
+        stats["pmax_labels_total"] = int(m.group(1))
+
+    # Parse campaign planning summary (Gefilterd: A -> B campagnes / Te maken: N)
+    m = re.search(r"Gefilterd:\s*(\d+)\s*->\s*(\d+)\s*campagnes", stdout)
+    if m:
+        stats["pmax_plans_total"] = int(m.group(1))
+        stats["pmax_plans_after_filter"] = int(m.group(2))
+    m = re.search(r"Te maken:\s*(\d+)", stdout)
+    if m:
+        stats["pmax_to_make"] = int(m.group(1))
+
+    # If script failed, zero out counts for safety
+    if code != 0:
+        return {k: 0 for k in stats}
+
+    return stats
 
 
-def run_portfolio_roas(job: WeeklyJob, cfg: PortfolioRoasConfig, python_exe: str) -> None:
+def run_portfolio_roas(job: WeeklyJob, cfg: PortfolioRoasConfig, python_exe: str) -> Dict[str, int]:
     print(f"\n==== Portfolio ROAS adjustment for job '{job.name}' ====")
     cmd = [
         python_exe,
@@ -357,10 +386,30 @@ def run_portfolio_roas(job: WeeklyJob, cfg: PortfolioRoasConfig, python_exe: str
         cmd.extend(["--percentage", str(cfg.percentage)])
 
     cmd.append("--apply")
-    _run(cmd, PROJECT_ROOT)
+    code, stdout, _ = _run(cmd, PROJECT_ROOT)
+
+    stats = {
+        "portfolio_strategies_found": 0,
+        "portfolio_strategies_adjusted": 0,
+    }
+
+    # "Gevonden X strategy(s):"
+    m = re.search(r"Gevonden\s+(\d+)\s+strategy\(s\)", stdout)
+    if m:
+        stats["portfolio_strategies_found"] = int(m.group(1))
+
+    # "[RESULTAAT]  Succesvol aangepast: X"
+    m = re.search(r"Succesvol aangepast:\s*(\d+)", stdout)
+    if m:
+        stats["portfolio_strategies_adjusted"] = int(m.group(1))
+
+    if code != 0:
+        return {k: 0 for k in stats}
+
+    return stats
 
 
-def run_pmax_roas(job: WeeklyJob, cfg: PMaxRoasConfig, python_exe: str) -> None:
+def run_pmax_roas(job: WeeklyJob, cfg: PMaxRoasConfig, python_exe: str) -> Dict[str, int]:
     print(f"\n==== PMax ROAS adjustment for job '{job.name}' ====")
     cmd = [
         python_exe,
@@ -377,7 +426,27 @@ def run_pmax_roas(job: WeeklyJob, cfg: PMaxRoasConfig, python_exe: str) -> None:
         cmd.extend(["--percentage", str(cfg.percentage)])
 
     cmd.append("--apply")
-    _run(cmd, PROJECT_ROOT)
+    code, stdout, _ = _run(cmd, PROJECT_ROOT)
+
+    stats = {
+        "pmax_roas_campaigns_found": 0,
+        "pmax_roas_campaigns_adjusted": 0,
+    }
+
+    # "Gevonden N PMax campagne(s):"
+    m = re.search(r"Gevonden\s+(\d+)\s+PMax campagne\(s\)", stdout)
+    if m:
+        stats["pmax_roas_campaigns_found"] = int(m.group(1))
+
+    # "[RESULTAAT]  Succesvol aangepast: N"
+    m = re.search(r"Succesvol aangepast:\s*(\d+)", stdout)
+    if m:
+        stats["pmax_roas_campaigns_adjusted"] = int(m.group(1))
+
+    if code != 0:
+        return {k: 0 for k in stats}
+
+    return stats
 
 
 def main() -> None:
@@ -414,6 +483,14 @@ def main() -> None:
     start_ts = datetime.utcnow().isoformat(timespec="seconds") + "Z"
     summary_lines: List[str] = []
 
+    # Global counters for short mail summary
+    global_pmax_labels = 0
+    global_pmax_to_make = 0
+    global_portfolio_found = 0
+    global_portfolio_adjusted = 0
+    global_pmax_roas_found = 0
+    global_pmax_roas_adjusted = 0
+
     for job in jobs:
         print(f"\n================= JOB: {job.name} =================")
         executed_steps: List[str] = []
@@ -423,19 +500,31 @@ def main() -> None:
             run_standard(job, job.standard, python_exe)
             executed_steps.append("standard")
         if job.pmax:
-            run_pmax(job, job.pmax, python_exe)
-            executed_steps.append("pmax")
+            pmax_stats = run_pmax(job, job.pmax, python_exe)
+            executed_steps.append(
+                f"pmax (labels={pmax_stats['pmax_labels_total']}, plannen={pmax_stats['pmax_to_make']})"
+            )
+            global_pmax_labels += pmax_stats["pmax_labels_total"]
+            global_pmax_to_make += pmax_stats["pmax_to_make"]
 
         # 2) ROAS adjustments
         if job.portfolio_roas:
-            run_portfolio_roas(job, job.portfolio_roas, python_exe)
-            executed_steps.append("portfolio_roas")
+            port_stats = run_portfolio_roas(job, job.portfolio_roas, python_exe)
+            executed_steps.append(
+                f"portfolio_roas (gevonden={port_stats['portfolio_strategies_found']}, aangepast={port_stats['portfolio_strategies_adjusted']})"
+            )
+            global_portfolio_found += port_stats["portfolio_strategies_found"]
+            global_portfolio_adjusted += port_stats["portfolio_strategies_adjusted"]
         if job.pmax_roas:
-            run_pmax_roas(job, job.pmax_roas, python_exe)
-            executed_steps.append("pmax_roas")
+            pmax_roas_stats = run_pmax_roas(job, job.pmax_roas, python_exe)
+            executed_steps.append(
+                f"pmax_roas (gevonden={pmax_roas_stats['pmax_roas_campaigns_found']}, aangepast={pmax_roas_stats['pmax_roas_campaigns_adjusted']})"
+            )
+            global_pmax_roas_found += pmax_roas_stats["pmax_roas_campaigns_found"]
+            global_pmax_roas_adjusted += pmax_roas_stats["pmax_roas_campaigns_adjusted"]
 
         if executed_steps:
-            summary_lines.append(f"{job.name}: " + ", ".join(executed_steps))
+            summary_lines.append(f"{job.name}: " + "; ".join(executed_steps))
         else:
             summary_lines.append(f"{job.name}: geen stappen uitgevoerd (alles disabled)")
 
@@ -453,6 +542,15 @@ def main() -> None:
         "Jobs:",
     ]
     summary_body.extend(f"- {line}" for line in summary_lines)
+    summary_body.extend(
+        [
+            "",
+            "Totaal samenvatting:",
+            f"- PMax campagnes: labels gevonden={global_pmax_labels}, campagnes gepland/te maken={global_pmax_to_make}",
+            f"- Portfolio tROAS strategies: gevonden={global_portfolio_found}, aangepast={global_portfolio_adjusted}",
+            f"- PMax ROAS campagnes: gevonden={global_pmax_roas_found}, aangepast={global_pmax_roas_adjusted}",
+        ]
+    )
 
     _send_summary_email(
         subject="Weekly automation voltooid",

@@ -4,7 +4,7 @@
     "standard": {
       "enabled": false,
       "customer_id": "345-644-3586",
-      "merchant_id": "",
+      "merchant_id": "5080802405",
       "prefix": "GS",
       "daily_budget": 5.0,
       "feed_label": "fr",
@@ -16,7 +16,7 @@
     "pmax": {
       "enabled": true,
       "customer_id": "345-644-3586",
-      "merchant_id": "",
+      "merchant_id": "5080802405",
       "prefix": "PMax Feed",
       "label_index": 0,
       "daily_budget": 5.0,
