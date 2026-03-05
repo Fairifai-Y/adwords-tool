@@ -232,6 +232,10 @@ def run_pmax(job: WeeklyJob, cfg: PMaxConfig, python_exe: str) -> None:
         "true",
     ]
 
+    # Merchant ID is required for feed-only PMax campaigns
+    if cfg.merchant_id:
+        cmd.extend(["--merchant-id", cfg.merchant_id])
+
     # We rely on label_campaigns' eigen logica voor tROAS (target_roas / roas_factor)
     if cfg.roas_factor:
         cmd.extend(["--roas-factor", str(cfg.roas_factor)])
