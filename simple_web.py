@@ -2253,6 +2253,246 @@ HTML_TEMPLATE = """
 </html>
 """
 
+
+# Separate, minimal template for Seller Klik-analyse only
+SELLER_CLICKS_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seller Klik-analyse - SDeal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f5f5f5; }
+        .tool-card { border: none; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">SDeal Google Ads Tools</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNavbar">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">← Terug naar hoofdtools</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4" id="top">
+        <div class="alert alert-info">
+            <strong>Seller Klik-analyse</strong> – tijdreeks per dag voor een campagnenaam, laatste N dagen.
+        </div>
+
+        <!-- Global account selector (hergebruikt /api/accounts) -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label for="globalAccountSelectSeller" class="form-label">Account selectie</label>
+                        <select id="globalAccountSelectSeller" class="form-select">
+                            <option value="">-- Kies account (Ads + Merchant) --</option>
+                        </select>
+                        <div class="form-text">
+                            Kies een account om het Customer ID automatisch in te vullen.
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Customer ID (doelaccount)</label>
+                        <input type="text" class="form-control" id="sellerClicksCustomerId" placeholder="123-456-7890">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seller Clicks Timeseries (last N days) -->
+        <div class="row" id="section-seller-clicks">
+            <div class="col-12">
+                <div class="card tool-card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">📈 Seller Klik-analyse (per dag, laatste N dagen)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>[ANALYSE] Kliks per dag voor een campagnenaam</h6>
+                                <p class="text-muted">
+                                    Haal een tijdreeks op met impressies, kliks, conversies, waarde en kosten per dag voor alle campagnes
+                                    waarvan de naam een bepaalde tekst bevat (bijv. <code>EchtVeelVoorWeinig</code>).<br>
+                                    Later kan deze filter eenvoudig worden omgezet naar een seller ID.
+                                </p>
+                                
+                                <form id="sellerClicksForm" onsubmit="event.preventDefault(); fetchSellerClicksTimeseries();">
+                                    <div class="mb-3">
+                                        <label class="form-label">Customer ID *</label>
+                                        <input type="text" class="form-control" id="sellerClicksCustomerId" required placeholder="123-456-7890">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Campagnenaam (substring) *</label>
+                                        <input type="text" class="form-control" id="sellerClicksCampaignName" required placeholder="EchtVeelVoorWeinig">
+                                        <small class="form-text text-muted">
+                                            We zoeken naar campagnes waarvan de naam deze tekst bevat (hoofdlettergevoelig zoals in Google Ads).
+                                        </small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Dagen terug</label>
+                                        <input type="number" class="form-control" id="sellerClicksDays" value="90" min="1" max="365">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="sellerClicksExportCsv">
+                                            <label class="form-check-label" for="sellerClicksExportCsv">
+                                                Exporteer ook naar CSV (map <code>reports/</code> in dit project)
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary">
+                                        [RUN] Seller Klik-analyse
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div class="col-md-6">
+                                <h6>[RESULTS] Seller Kliks per Dag</h6>
+                                <div id="sellerClicksResults" class="border rounded p-3" style="background: #f8f9fa; min-height: 200px;">
+                                    <small class="text-muted">
+                                        Vul het formulier in en klik op "Seller Klik-analyse" om de tijdreeks per dag te zien.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    async function loadAccountsConfigSeller() {
+        try {
+            const resp = await fetch('/api/accounts');
+            const data = await resp.json();
+            if (!data.success || !Array.isArray(data.accounts)) {
+                console.warn('Kon accounts niet laden voor seller clicks:', data.error || data);
+                return;
+            }
+            const select = document.getElementById('globalAccountSelectSeller');
+            select.innerHTML = '<option value=\"\">-- Kies account (Ads + Merchant) --</option>';
+
+            data.accounts.forEach(acc => {
+                const opt = document.createElement('option');
+                opt.value = acc.key;
+                const firstCustomer = (acc.customer_ids && acc.customer_ids[0]) || '';
+                opt.textContent = acc.label + (firstCustomer ? ' (' + firstCustomer + ')' : '');
+                opt.dataset.customerId = firstCustomer;
+                select.appendChild(opt);
+            });
+
+            select.addEventListener('change', () => {
+                const opt = select.options[select.selectedIndex];
+                const cid = opt && opt.dataset.customerId ? opt.dataset.customerId : '';
+                if (cid) {
+                    const el = document.getElementById('sellerClicksCustomerId');
+                    if (el) el.value = cid;
+                }
+            });
+        } catch (e) {
+            console.warn('Error loading accounts config for seller clicks:', e);
+        }
+    }
+
+    async function fetchSellerClicksTimeseries() {
+        const customerId = document.getElementById('sellerClicksCustomerId').value.trim();
+        const campaignName = document.getElementById('sellerClicksCampaignName').value.trim();
+        const daysInput = document.getElementById('sellerClicksDays').value;
+        const exportCsv = document.getElementById('sellerClicksExportCsv').checked;
+
+        if (!customerId) {
+            alert('Vul een Customer ID in.');
+            return;
+        }
+        if (!campaignName) {
+            alert('Vul een (deel van de) campagnenaam in.');
+            return;
+        }
+
+        const days = daysInput === '' || daysInput === null ? 90 : parseInt(daysInput, 10);
+        if (isNaN(days) || days <= 0) {
+            alert('Vul een geldig aantal dagen in (bijv. 90).');
+            return;
+        }
+
+        const resultsContainer = document.getElementById('sellerClicksResults');
+        resultsContainer.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status"></div><br>
+                <small>Seller klik-analyse wordt uitgevoerd...</small>
+            </div>
+        `;
+
+        try {
+            const response = await fetch('/api/seller-clicks-timeseries', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    customer_id: customerId,
+                    campaign_name: campaignName,
+                    days: days,
+                    export_csv: exportCsv
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const output = result.output || '';
+                const escapedOutput = output
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+
+                resultsContainer.innerHTML = `
+                    <pre class="small" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;">${escapedOutput}</pre>
+                    <small class="text-muted d-block mt-2">Command: ${result.command || ''}</small>
+                `;
+            } else {
+                resultsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>❌ Seller Klik-analyse Failed</h6>
+                        <pre class="small" style="white-space: pre-wrap;">${(result.error || result.output || 'Onbekende fout').toString()}</pre>
+                        <small class="text-muted d-block mt-2">Command: ${result.command || ''}</small>
+                    </div>
+                `;
+            }
+        } catch (e) {
+            resultsContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6>❌ Seller Klik-analyse Exception</h6>
+                    <pre class="small" style="white-space: pre-wrap;">${e}</pre>
+                </div>
+            `;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadAccountsConfigSeller();
+    });
+    </script>
+</body>
+</html>
+"""
+
 @app.route('/')
 def index():
     return render_template_string(HTML_TEMPLATE)
@@ -2260,8 +2500,8 @@ def index():
 
 @app.route('/seller-clicks')
 def seller_clicks_page():
-    """Separate URL for Seller Klik-analyse; same template, direct anchor via URL fragment."""
-    return render_template_string(HTML_TEMPLATE)
+    """Separate, minimal page for Seller Klik-analyse (voor andere gebruikers)."""
+    return render_template_string(SELLER_CLICKS_TEMPLATE)
 
 @app.route('/api/discover-labels', methods=['POST'])
 def discover_labels():
