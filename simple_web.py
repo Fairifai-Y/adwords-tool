@@ -113,6 +113,9 @@ HTML_TEMPLATE = """
                         <a class="nav-link" href="/seller-clicks#section-seller-clicks">Seller Kliks</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="/seller-performance">Seller ROAS</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="#section-roas">Portfolio ROAS</a>
                     </li>
                     <li class="nav-item">
@@ -2493,6 +2496,219 @@ SELLER_CLICKS_TEMPLATE = """
 </html>
 """
 
+
+# Separate, minimal template for Seller ROAS per seller (account-level overzicht)
+SELLER_PERFORMANCE_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seller ROAS overzicht - SDeal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f5f5f5; }
+        .tool-card { border: none; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">SDeal Google Ads Tools</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNavbar">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">← Terug naar hoofdtools</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4" id="top">
+        <div class="alert alert-info">
+            <strong>Seller ROAS overzicht</strong> – per seller (custom_label_0) omzet, kosten en ROAS over de laatste N dagen.
+        </div>
+
+        <!-- Global account selector (hergebruikt /api/accounts) -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label for="globalAccountSelectSellerRoas" class="form-label">Account selectie</label>
+                        <select id="globalAccountSelectSellerRoas" class="form-select">
+                            <option value="">-- Kies account (Ads + Merchant) --</option>
+                        </select>
+                        <div class="form-text">
+                            Kies een account om het Customer ID automatisch in te vullen.
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Customer ID (doelaccount)</label>
+                        <input type="text" class="form-control" id="sellerRoasCustomerId" placeholder="123-456-7890">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seller ROAS sectie -->
+        <div class="row" id="section-seller-roas">
+            <div class="col-12">
+                <div class="card tool-card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">📊 Seller ROAS per seller (omzet, kosten, ROAS)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>[ANALYSE] Per-seller ROAS</h6>
+                                <p class="text-muted">
+                                    Toont per seller (gebaseerd op <code>custom_label_0</code> / product_custom_attribute0)
+                                    de totale omzet, kosten en ROAS (omzet / kosten) over de laatste N dagen.
+                                </p>
+                                
+                                <form id="sellerRoasForm" onsubmit="event.preventDefault(); fetchSellerRoasOverview();">
+                                    <div class="mb-3">
+                                        <label class="form-label">Customer ID *</label>
+                                        <input type="text" class="form-control" id="sellerRoasCustomerId" required placeholder="123-456-7890">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Dagen terug</label>
+                                        <input type="number" class="form-control" id="sellerRoasDays" value="30" min="1" max="365">
+                                    </div>
+
+                                    <button type="submit" class="btn btn-success">
+                                        [RUN] Seller ROAS overzicht
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div class="col-md-6">
+                                <h6>[RESULTS] Seller ROAS</h6>
+                                <div id="sellerRoasResults" class="border rounded p-3" style="background: #f8f9fa; min-height: 200px;">
+                                    <small class="text-muted">
+                                        Vul het formulier in en klik op "Seller ROAS overzicht" om de lijst per seller te zien.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    async function loadAccountsConfigSellerRoas() {
+        try {
+            const resp = await fetch('/api/accounts');
+            const data = await resp.json();
+            if (!data.success || !Array.isArray(data.accounts)) {
+                console.warn('Kon accounts niet laden voor seller ROAS:', data.error || data);
+                return;
+            }
+            const select = document.getElementById('globalAccountSelectSellerRoas');
+            select.innerHTML = '<option value=\"\">-- Kies account (Ads + Merchant) --</option>';
+
+            data.accounts.forEach(acc => {
+                const opt = document.createElement('option');
+                opt.value = acc.key;
+                const firstCustomer = (acc.customer_ids && acc.customer_ids[0]) || '';
+                opt.textContent = acc.label + (firstCustomer ? ' (' + firstCustomer + ')' : '');
+                opt.dataset.customerId = firstCustomer;
+                select.appendChild(opt);
+            });
+
+            select.addEventListener('change', () => {
+                const opt = select.options[select.selectedIndex];
+                const cid = opt && opt.dataset.customerId ? opt.dataset.customerId : '';
+                if (cid) {
+                    const el = document.getElementById('sellerRoasCustomerId');
+                    if (el) el.value = cid;
+                }
+            });
+        } catch (e) {
+            console.warn('Error loading accounts config for seller ROAS:', e);
+        }
+    }
+
+    async function fetchSellerRoasOverview() {
+        const customerId = document.getElementById('sellerRoasCustomerId').value.trim();
+        const daysInput = document.getElementById('sellerRoasDays').value;
+
+        if (!customerId) {
+            alert('Vul een Customer ID in.');
+            return;
+        }
+
+        const days = daysInput === '' || daysInput === null ? 30 : parseInt(daysInput, 10);
+        if (isNaN(days) || days <= 0) {
+            alert('Vul een geldig aantal dagen in (bijv. 30).');
+            return;
+        }
+
+        const resultsContainer = document.getElementById('sellerRoasResults');
+        resultsContainer.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border text-success" role="status"></div><br>
+                <small>Seller ROAS overzicht wordt opgehaald...</small>
+            </div>
+        `;
+
+        try {
+            const response = await fetch('/api/account-seller-roas', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    customer_id: customerId,
+                    days: days
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const output = result.output || '';
+                const escapedOutput = output
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+
+                resultsContainer.innerHTML = `
+                    <pre class="small" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;">${escapedOutput}</pre>
+                    <small class="text-muted d-block mt-2">Command: ${result.command || ''}</small>
+                `;
+            } else {
+                resultsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>❌ Seller ROAS overzicht Failed</h6>
+                        <pre class="small" style="white-space: pre-wrap;">${(result.error || result.output || 'Onbekende fout').toString()}</pre>
+                        <small class="text-muted d-block mt-2">Command: ${result.command || ''}</small>
+                    </div>
+                `;
+            }
+        } catch (e) {
+            resultsContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6>❌ Seller ROAS overzicht Exception</h6>
+                    <pre class="small" style="white-space: pre-wrap;">${e}</pre>
+                </div>
+            `;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadAccountsConfigSellerRoas();
+    });
+    </script>
+</body>
+</html>
+"""
 @app.route('/')
 def index():
     return render_template_string(HTML_TEMPLATE)
@@ -2502,6 +2718,12 @@ def index():
 def seller_clicks_page():
     """Separate, minimal page for Seller Klik-analyse (voor andere gebruikers)."""
     return render_template_string(SELLER_CLICKS_TEMPLATE)
+
+
+@app.route('/seller-performance')
+def seller_performance_page():
+    """Separate, minimal page voor Seller ROAS per seller (account-niveau)."""
+    return render_template_string(SELLER_PERFORMANCE_TEMPLATE)
 
 @app.route('/api/discover-labels', methods=['POST'])
 def discover_labels():
@@ -2588,6 +2810,42 @@ def seller_clicks_timeseries():
         print(f"Seller clicks exception: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+
+@app.route('/api/account-seller-roas', methods=['POST'])
+def account_seller_roas():
+    """Run the account_seller_roas CLI tool and return its output."""
+    try:
+        data = request.get_json()
+        customer_id = data.get('customer_id')
+        days = int(data.get('days', 30) or 30)
+
+        if not customer_id:
+            return jsonify({'success': False, 'error': 'Customer ID is required'})
+
+        python_exe = get_python_executable()
+        cmd = [
+            python_exe,
+            'src/account_seller_roas.py',
+            '--customer', customer_id,
+            '--days', str(days),
+        ]
+
+        print(f"Running command (account seller roas): {' '.join(cmd)}")
+
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path(__file__).parent)
+
+        print(f"Return code (account seller roas): {result.returncode}")
+        print(f"Stdout (account seller roas): {result.stdout[:500]}...")
+        print(f"Stderr (account seller roas): {result.stderr[:500]}...")
+
+        return jsonify({
+            'success': result.returncode == 0,
+            'output': result.stdout if result.returncode == 0 else result.stderr,
+            'command': ' '.join(cmd),
+        })
+    except Exception as e:
+        print(f"Account seller ROAS exception: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
