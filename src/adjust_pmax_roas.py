@@ -100,38 +100,42 @@ def _get_margin_for_seller(client: GoogleAdsClient, customer_id: str, seller_nam
     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
     
     query = (
-        "SELECT segments.product_custom_attribute0, segments.product_custom_attribute1, metrics.impressions "
+        "SELECT segments.date, segments.product_custom_attribute0, segments.product_custom_attribute1, metrics.impressions "
         "FROM shopping_performance_view "
         f"WHERE segments.date BETWEEN '{start_date}' AND '{end_date}' "
         f"AND segments.product_custom_attribute0 = '{safe_seller}' "
-        "AND segments.product_custom_attribute1 IS NOT NULL"
+        "AND segments.product_custom_attribute1 IS NOT NULL "
+        "ORDER BY segments.date DESC"
     )
     
-    label_1_values = {}
+    # Track the most recent label_1 value (by date, not by impressions)
+    latest_label_1 = None
+    latest_date = None
+    
     try:
         for row in ga.search(customer_id=customer_id, query=query):
             label_1 = getattr(row.segments, "product_custom_attribute1") or ""
-            impressions = row.metrics.impressions
+            date_str = str(row.segments.date)
             if label_1:
-                label_1_values[label_1] = label_1_values.get(label_1, 0) + impressions
+                # Use the first (most recent) label_1 we encounter since we ORDER BY date DESC
+                if latest_date is None or date_str > latest_date:
+                    latest_date = date_str
+                    latest_label_1 = label_1
     except Exception as e:
         return None, f"API-fout: {e}"
     
-    if not label_1_values:
+    if not latest_label_1:
         return None, "geen traffic in laatste 30 dagen met deze sellernaam (custom_label_0) en custom_label_1; controleer of de campagnenaam exact overeenkomt met label_0"
-    
-    # Find the dominant label_1 value (highest impressions)
-    dominant_label_1 = max(label_1_values.items(), key=lambda x: x[1])[0]
     
     # Parse percentage from label_1 (assuming format like "17.5%" or "15%")
     try:
-        clean_value = dominant_label_1.replace('%', '').strip()
+        clean_value = latest_label_1.replace('%', '').strip()
         percentage = float(clean_value)
         if percentage <= 0:
-            return None, f"custom_label_1 waarde '{dominant_label_1}' is geen geldig margepercentage (>0)"
+            return None, f"custom_label_1 waarde '{latest_label_1}' is geen geldig margepercentage (>0)"
         return percentage, None
     except ValueError:
-        return None, f"custom_label_1 waarde '{dominant_label_1}' is geen getal (verwacht bijv. '15%' of '17.5%')"
+        return None, f"custom_label_1 waarde '{latest_label_1}' is geen getal (verwacht bijv. '15%' of '17.5%')"
 
 
 MIN_TROAS = 3.0  # Failsafe: tROAS nooit lager dan 300% (3.0)

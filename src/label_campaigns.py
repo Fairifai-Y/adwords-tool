@@ -524,7 +524,7 @@ def get_existing_pmax_campaigns(client: GoogleAdsClient, customer_id: str, prefi
 
 
 def _discover_label0_to_label1_percent(client: GoogleAdsClient, customer_id: str) -> Dict[str, str]:
-    """For each custom_label0, find the dominant custom_label1 value by impressions.
+    """For each custom_label0, find the most recent custom_label1 value by date (not by impressions).
 
     Returns mapping: label0 -> label1_percent_string (e.g., "15%")
     """
@@ -533,26 +533,29 @@ def _discover_label0_to_label1_percent(client: GoogleAdsClient, customer_id: str
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
     query = (
-        f"SELECT segments.product_custom_attribute0, "
+        f"SELECT segments.date, segments.product_custom_attribute0, "
         f"segments.product_custom_attribute1, metrics.impressions "
         f"FROM shopping_performance_view "
         f"WHERE segments.date BETWEEN '{start_date}' AND '{end_date}' "
-        f"AND segments.product_custom_attribute0 IS NOT NULL"
+        f"AND segments.product_custom_attribute0 IS NOT NULL "
+        f"AND segments.product_custom_attribute1 IS NOT NULL "
+        f"ORDER BY segments.date DESC"
     )
-    agg: Dict[str, Dict[str, int]] = {}
+    # Track the most recent label_1 per label_0 (by date, not by impressions)
+    result: Dict[str, str] = {}
+    latest_dates: Dict[str, str] = {}  # label0 -> most recent date seen
+    
     for row in ga.search(customer_id=customer_id, query=query):
         c0 = getattr(row.segments, "product_custom_attribute0") or ""
         c1 = getattr(row.segments, "product_custom_attribute1") or ""
-        if not c0:
+        date_str = str(row.segments.date)
+        if not c0 or not c1:
             continue
-        agg.setdefault(c0, {})
-        agg[c0][c1] = agg[c0].get(c1, 0) + int(row.metrics.impressions)
-    result: Dict[str, str] = {}
-    for c0, counter in agg.items():
-        if not counter:
-            continue
-        best_c1 = max(counter.items(), key=lambda kv: kv[1])[0]
-        result[c0] = best_c1
+        # Use the first (most recent) label_1 we encounter for each label_0 since we ORDER BY date DESC
+        if c0 not in latest_dates or date_str > latest_dates[c0]:
+            latest_dates[c0] = date_str
+            result[c0] = c1
+    
     return result
 
 

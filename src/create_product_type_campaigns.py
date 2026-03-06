@@ -267,33 +267,41 @@ def get_troas_for_label_0(client: GoogleAdsClient, customer_id: str, label_0: st
         return value.replace("\\", "\\\\").replace("'", "\\'")
 
     safe_label_0 = _escape_gaql(label_0)
+    # Use explicit date range instead of DURING LAST_30_DAYS
+    from datetime import datetime, timedelta
+    end_date = datetime.now().strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
     query = (
-        "SELECT segments.product_custom_attribute0, segments.product_custom_attribute1, metrics.impressions "
+        "SELECT segments.date, segments.product_custom_attribute0, segments.product_custom_attribute1, metrics.impressions "
         "FROM shopping_performance_view "
-        "WHERE segments.date DURING LAST_30_DAYS "
+        f"WHERE segments.date BETWEEN '{start_date}' AND '{end_date}' "
         f"AND segments.product_custom_attribute0 = '{safe_label_0}' "
-        "AND segments.product_custom_attribute1 IS NOT NULL"
+        "AND segments.product_custom_attribute1 IS NOT NULL "
+        "ORDER BY segments.date DESC"
     )
     
-    label_1_values = {}
+    # Track the most recent label_1 value (by date, not by impressions)
+    latest_label_1 = None
+    latest_date = None
+    
     for row in ga.search(customer_id=customer_id, query=query):
         label_1 = getattr(row.segments, "product_custom_attribute1") or ""
-        impressions = row.metrics.impressions
+        date_str = str(row.segments.date)
         if label_1:
-            label_1_values[label_1] = label_1_values.get(label_1, 0) + impressions
+            # Use the first (most recent) label_1 we encounter since we ORDER BY date DESC
+            if latest_date is None or date_str > latest_date:
+                latest_date = date_str
+                latest_label_1 = label_1
     
-    if not label_1_values:
+    if not latest_label_1:
         return None
     
-    # Find the dominant label_1 value (highest impressions)
-    dominant_label_1 = max(label_1_values.items(), key=lambda x: x[1])[0]
-    
-    print(f"    Dominant custom_label_1 voor '{label_0}': '{dominant_label_1}'")
+    print(f"    Laatst bekende custom_label_1 voor '{label_0}' (datum {latest_date}): '{latest_label_1}'")
     
     # Parse tROAS from label_1 (assuming format like "17.5%" or "15%")
     try:
         # Remove % and convert to float
-        clean_value = dominant_label_1.replace('%', '').strip()
+        clean_value = latest_label_1.replace('%', '').strip()
         percentage = float(clean_value)
         if percentage <= 0:
             print(f"    -> Percentage moet > 0 zijn, kreeg: {percentage}")
@@ -305,7 +313,7 @@ def get_troas_for_label_0(client: GoogleAdsClient, customer_id: str, label_0: st
         print(f"    -> Afgeleide tROAS: {percentage}% -> {troas}")
         return troas
     except ValueError:
-        print(f"    -> Kon tROAS niet afleiden uit '{dominant_label_1}'")
+        print(f"    -> Kon tROAS niet afleiden uit '{latest_label_1}'")
         return None
 
 
