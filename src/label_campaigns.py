@@ -538,12 +538,11 @@ def _discover_label0_to_label1_percent(client: GoogleAdsClient, customer_id: str
         f"FROM shopping_performance_view "
         f"WHERE segments.date BETWEEN '{start_date}' AND '{end_date}' "
         f"AND segments.product_custom_attribute0 IS NOT NULL "
-        f"AND segments.product_custom_attribute1 IS NOT NULL "
-        f"ORDER BY segments.date DESC"
+        f"AND segments.product_custom_attribute1 IS NOT NULL"
     )
     # Track the most recent label_1 per label_0 (by date, not by impressions)
     result: Dict[str, str] = {}
-    latest_dates: Dict[str, str] = {}  # label0 -> most recent date seen
+    label_1_by_date_per_label: Dict[str, Dict[str, str]] = {}  # label0 -> {date_str -> label1}
     
     for row in ga.search(customer_id=customer_id, query=query):
         c0 = getattr(row.segments, "product_custom_attribute0") or ""
@@ -551,10 +550,16 @@ def _discover_label0_to_label1_percent(client: GoogleAdsClient, customer_id: str
         date_str = str(row.segments.date)
         if not c0 or not c1:
             continue
-        # Use the first (most recent) label_1 we encounter for each label_0 since we ORDER BY date DESC
-        if c0 not in latest_dates or date_str > latest_dates[c0]:
-            latest_dates[c0] = date_str
-            result[c0] = c1
+        # Store label_1 per date for each label_0
+        if c0 not in label_1_by_date_per_label:
+            label_1_by_date_per_label[c0] = {}
+        label_1_by_date_per_label[c0][date_str] = c1
+    
+    # For each label_0, find the most recent date and use its label_1
+    for c0, date_to_label1 in label_1_by_date_per_label.items():
+        if date_to_label1:
+            latest_date = max(date_to_label1.keys())
+            result[c0] = date_to_label1[latest_date]
     
     return result
 

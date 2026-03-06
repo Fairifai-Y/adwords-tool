@@ -104,23 +104,27 @@ def _get_margin_for_seller(client: GoogleAdsClient, customer_id: str, seller_nam
         "FROM shopping_performance_view "
         f"WHERE segments.date BETWEEN '{start_date}' AND '{end_date}' "
         f"AND segments.product_custom_attribute0 = '{safe_seller}' "
-        "AND segments.product_custom_attribute1 IS NOT NULL "
-        "ORDER BY segments.date DESC"
+        "AND segments.product_custom_attribute1 IS NOT NULL"
     )
     
-    # Track the most recent label_1 value (by date, not by impressions)
-    latest_label_1 = None
-    latest_date = None
+    # Track all label_1 values with their dates, then pick the most recent
+    label_1_by_date = {}  # date_str -> label_1
     
     try:
         for row in ga.search(customer_id=customer_id, query=query):
             label_1 = getattr(row.segments, "product_custom_attribute1") or ""
             date_str = str(row.segments.date)
             if label_1:
-                # Use the first (most recent) label_1 we encounter since we ORDER BY date DESC
-                if latest_date is None or date_str > latest_date:
-                    latest_date = date_str
-                    latest_label_1 = label_1
+                # Store the label_1 for this date (if we haven't seen this date yet, or if this date is newer)
+                if date_str not in label_1_by_date or date_str > max(label_1_by_date.keys(), default=""):
+                    label_1_by_date[date_str] = label_1
+        
+        # Find the most recent date and its corresponding label_1
+        if not label_1_by_date:
+            return None, "geen traffic in laatste 30 dagen met deze sellernaam (custom_label_0) en custom_label_1; controleer of de campagnenaam exact overeenkomt met label_0"
+        
+        latest_date = max(label_1_by_date.keys())
+        latest_label_1 = label_1_by_date[latest_date]
     except Exception as e:
         return None, f"API-fout: {e}"
     
