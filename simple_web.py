@@ -1017,11 +1017,13 @@ HTML_TEMPLATE = """
 
                             <div class="col-md-6">
                                 <h6>[RESULTS] Seller Kliks per Dag</h6>
-                                <div id="sellerClicksResults" class="border rounded p-3" style="background: #f8f9fa; min-height: 200px;">
+                                <div id="sellerClicksResults" class="border rounded p-3 mb-3" style="background: #f8f9fa; min-height: 200px;">
                                     <small class="text-muted">
                                         Vul het formulier in en klik op "Seller Klik-analyse" om de tijdreeks per dag te zien.
                                     </small>
                                 </div>
+                                <!-- Simpele lijn-grafiek voor kliks per dag (optioneel, bovenop tekstoutput) -->
+                                <canvas id="sellerClicksChart" height="160"></canvas>
                             </div>
                         </div>
                     </div>
@@ -1087,8 +1089,11 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
+    <!-- Chart.js alleen voor deze pagina (minimale lijn-grafiek) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-1gxpO69dWe9WJx1IepF8o6aG5BsP4dGqA2jZtY5GRIZz7IhZvqHeVX8nBIX5GQm" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+    let sellerClicksChartInstance = null;
         let discoveredLabels = [];
         let accountsConfig = [];
         
@@ -2472,7 +2477,23 @@ SELLER_CLICKS_TEMPLATE = """
                     <pre class="small" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;">${escapedOutput}</pre>
                     <small class="text-muted d-block mt-2">Command: ${result.command || ''}</small>
                 `;
+
+                // Probeer optioneel een simpele lijn-grafiek te tekenen op basis van de tabeloutput
+                try {
+                    const parsed = parseSellerClicksOutput(output);
+                    if (parsed.labels.length > 0) {
+                        renderSellerClicksChart(parsed.labels, parsed.clicks);
+                    } else {
+                        // Geen datarijen gevonden -> grafiek leegmaken
+                        renderSellerClicksChart([], []);
+                    }
+                } catch (e) {
+                    console.warn('Kon seller clicks output niet parsen voor grafiek:', e);
+                    // Fout in grafiek mag de tekstoutput niet breken
+                }
             } else {
+                // Bij fout ook grafiek leegmaken
+                renderSellerClicksChart([], []);
                 resultsContainer.innerHTML = `
                     <div class="alert alert-danger">
                         <h6>❌ Seller Klik-analyse Failed</h6>
@@ -2482,14 +2503,102 @@ SELLER_CLICKS_TEMPLATE = """
                 `;
             }
         } catch (e) {
+            // Bij exception ook grafiek leegmaken
+            renderSellerClicksChart([], []);
             resultsContainer.innerHTML = `
                 <div class="alert alert-danger">
                     <h6>❌ Seller Klik-analyse Exception</h6>
                     <pre class="small" style="white-space: pre-wrap;">${e}</pre>
                 </div>
             `;
-        }
     }
+
+        /**
+         * Parseert de tekstoutput van seller_clicks_timeseries.py naar labels + clicks per dag.
+         * Verwacht een tabel met regels zoals:
+         *  Datum        Impr     Clicks    Conv      Value       Cost
+         *  2024-01-01   1,234    56        ...
+         */
+        function parseSellerClicksOutput(outputText) {
+            const lines = (outputText || '').split('\n');
+            const dateRegex = /^(\d{4}-\d{2}-\d{2})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/;
+            const labels = [];
+            const clicks = [];
+
+            for (const line of lines) {
+                const m = line.match(dateRegex);
+                if (!m) continue;
+                const dateStr = m[1];
+                const clicksStr = m[3].replace(/\./g, '').replace(/,/g, '');
+                const clicksVal = parseInt(clicksStr, 10);
+                if (!isNaN(clicksVal)) {
+                    labels.push(dateStr);
+                    clicks.push(clicksVal);
+                }
+            }
+            return { labels, clicks };
+        }
+
+        /**
+         * Tekent of ververst een eenvoudige lijn-grafiek voor kliks per dag.
+         * Als labels/data leeg zijn, wordt de grafiek gewist.
+         */
+        function renderSellerClicksChart(labels, data) {
+            const canvas = document.getElementById('sellerClicksChart');
+            if (!canvas || typeof Chart === 'undefined') {
+                return;
+            }
+
+            const ctx = canvas.getContext('2d');
+            if (sellerClicksChartInstance) {
+                sellerClicksChartInstance.destroy();
+                sellerClicksChartInstance = null;
+            }
+
+            if (!labels || labels.length === 0 || !data || data.length === 0) {
+                // Geen data -> niks tekenen
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            sellerClicksChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Clicks per dag',
+                        data: data,
+                        borderColor: 'rgba(13,110,253,1)', // Bootstrap primary
+                        backgroundColor: 'rgba(13,110,253,0.1)',
+                        tension: 0.2,
+                        pointRadius: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
 
     document.addEventListener('DOMContentLoaded', () => {
         loadAccountsConfigSeller();
