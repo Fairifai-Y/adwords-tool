@@ -2308,7 +2308,8 @@ SELLER_CLICKS_TEMPLATE = """
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Customer ID (doelaccount)</label>
-                        <input type="text" class="form-control" id="sellerClicksCustomerId" placeholder="123-456-7890">
+                        <!-- Globale Customer ID voor Seller Kliks; wordt automatisch ingevuld vanuit accountselectie -->
+                        <input type="text" class="form-control" id="sellerClicksCustomerIdGlobal" placeholder="123-456-7890">
                     </div>
                 </div>
             </div>
@@ -2406,8 +2407,10 @@ SELLER_CLICKS_TEMPLATE = """
                 const opt = select.options[select.selectedIndex];
                 const cid = opt && opt.dataset.customerId ? opt.dataset.customerId : '';
                 if (cid) {
-                    const el = document.getElementById('sellerClicksCustomerId');
-                    if (el) el.value = cid;
+                    const mainEl = document.getElementById('sellerClicksCustomerId');
+                    if (mainEl) mainEl.value = cid;
+                    const globalEl = document.getElementById('sellerClicksCustomerIdGlobal');
+                    if (globalEl) globalEl.value = cid;
                 }
             });
         } catch (e) {
