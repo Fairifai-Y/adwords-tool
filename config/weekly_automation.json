@@ -157,14 +157,14 @@
       "enabled": true,
       "customer_id": "109-603-9425",
       "reset": true,
-      "percentage": 0.0
+      "percentage": -20
     },
     "pmax_roas": {
       "enabled": false,
       "customer_id": "109-603-9425",
       "prefix": "PMax Feed",
       "reset": false,
-      "percentage": -10
+      "percentage": 0
     }
   },
   {
