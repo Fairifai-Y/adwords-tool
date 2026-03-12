@@ -353,6 +353,8 @@ def run_pmax(job: WeeklyJob, cfg: PMaxConfig, python_exe: str) -> Dict[str, int]
     # We rely on label_campaigns' eigen logica voor tROAS (target_roas / roas_factor)
     if cfg.roas_factor:
         cmd.extend(["--roas-factor", str(cfg.roas_factor)])
+    if cfg.start_enabled:
+        cmd.append("--start-enabled")
 
     code, stdout, _ = _run(cmd, PROJECT_ROOT)
 
