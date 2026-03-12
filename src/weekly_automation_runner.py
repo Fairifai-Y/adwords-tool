@@ -274,7 +274,7 @@ def _run(cmd: list[str], cwd: Path) -> tuple[int, str, str]:
     return result.returncode, result.stdout or "", result.stderr or ""
 
 
-def run_standard(job: WeeklyJob, cfg: StandardConfig, python_exe: str) -> None:
+def run_standard(job: WeeklyJob, cfg: StandardConfig, python_exe: str) -> Dict[str, int]:
     print(f"\n==== Standard Shopping creation for job '{job.name}' ====")
     cmd = [
         python_exe,
@@ -304,7 +304,21 @@ def run_standard(job: WeeklyJob, cfg: StandardConfig, python_exe: str) -> None:
     if cfg.start_enabled:
         cmd.append("--start-enabled")
 
-    _run(cmd, PROJECT_ROOT)
+    code, stdout, _ = _run(cmd, PROJECT_ROOT)
+
+    stats = {
+        "standard_created": 0,
+    }
+
+    # Parse: "[OK] Klaar! {len(created_campaigns)} van {len(plans_to_use)} campagnes succesvol aangemaakt."
+    m = re.search(r"\[OK\]\s*Klaar!\s*(\d+)\s*van\s*\d+\s*campagnes succesvol aangemaakt", stdout)
+    if m:
+        stats["standard_created"] = int(m.group(1))
+
+    if code != 0:
+        return {k: 0 for k in stats}
+
+    return stats
 
 
 def run_pmax(job: WeeklyJob, cfg: PMaxConfig, python_exe: str) -> Dict[str, int]:
@@ -347,6 +361,7 @@ def run_pmax(job: WeeklyJob, cfg: PMaxConfig, python_exe: str) -> Dict[str, int]
         "pmax_plans_total": 0,
         "pmax_plans_after_filter": 0,
         "pmax_to_make": 0,
+        "pmax_created": 0,
     }
 
     # Parse label discovery summary
@@ -362,6 +377,11 @@ def run_pmax(job: WeeklyJob, cfg: PMaxConfig, python_exe: str) -> Dict[str, int]
     m = re.search(r"Te maken:\s*(\d+)", stdout)
     if m:
         stats["pmax_to_make"] = int(m.group(1))
+
+    # Parse actual created campaigns: "[INFO] {i} van {len(plans)} campagnes succesvol aangemaakt."
+    m = re.search(r"\[INFO\]\s*(\d+)\s*van\s*\d+\s*campagnes succesvol aangemaakt", stdout)
+    if m:
+        stats["pmax_created"] = int(m.group(1))
 
     # If script failed, zero out counts for safety
     if code != 0:
@@ -480,6 +500,15 @@ def main() -> None:
     print(f"Using Python executable: {python_exe}")
     print(f"Loaded {len(jobs)} job(s) from {config_path}")
 
+    # Load accounts.json to get account labels
+    accounts_path = PROJECT_ROOT / "config" / "accounts.json"
+    accounts_data: Dict[str, Dict] = {}
+    if accounts_path.exists():
+        try:
+            accounts_data = json.loads(accounts_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"[WARNING] Kon accounts.json niet laden: {e}")
+
     start_ts = datetime.utcnow().isoformat(timespec="seconds") + "Z"
     summary_lines: List[str] = []
 
@@ -491,14 +520,36 @@ def main() -> None:
     global_pmax_roas_found = 0
     global_pmax_roas_adjusted = 0
 
+    # Store campaign creation results for email table
+    campaign_results: List[Dict[str, str]] = []
+
     for job in jobs:
         print(f"\n================= JOB: {job.name} =================")
         executed_steps: List[str] = []
 
         # 1) Campagne creatie
         if job.standard:
-            run_standard(job, job.standard, python_exe)
+            standard_stats = run_standard(job, job.standard, python_exe)
             executed_steps.append("standard")
+            # Get account label and customer ID
+            account_label = accounts_data.get(job.name, {}).get("label", job.name)
+            customer_id = job.standard.customer_id
+            if standard_stats["standard_created"] > 0:
+                campaign_results.append({
+                    "account": f"{account_label} ({customer_id})",
+                    "job_name": job.name,
+                    "count": str(standard_stats["standard_created"]),
+                    "type": "Standard Shopping"
+                })
+            else:
+                # No new campaigns created - could be "none found" or "already existed"
+                # We'll mark it as "Geen nieuwe ontdekt" for now
+                campaign_results.append({
+                    "account": f"{account_label} ({customer_id})",
+                    "job_name": job.name,
+                    "count": "0",
+                    "type": "Geen nieuwe ontdekt"
+                })
         if job.pmax:
             pmax_stats = run_pmax(job, job.pmax, python_exe)
             executed_steps.append(
@@ -506,6 +557,33 @@ def main() -> None:
             )
             global_pmax_labels += pmax_stats["pmax_labels_total"]
             global_pmax_to_make += pmax_stats["pmax_to_make"]
+            # Get account label and customer ID
+            account_label = accounts_data.get(job.name, {}).get("label", job.name)
+            customer_id = job.pmax.customer_id
+            pmax_type_label = "PMax (Feed-only)" if job.pmax.pmax_type == "feed-only" else "PMax"
+            if pmax_stats["pmax_created"] > 0:
+                campaign_results.append({
+                    "account": f"{account_label} ({customer_id})",
+                    "job_name": job.name,
+                    "count": str(pmax_stats["pmax_created"]),
+                    "type": pmax_type_label
+                })
+            elif pmax_stats["pmax_to_make"] > 0:
+                # There were campaigns planned but none created - they probably already existed
+                campaign_results.append({
+                    "account": f"{account_label} ({customer_id})",
+                    "job_name": job.name,
+                    "count": "0",
+                    "type": "Geen (bestonden al)"
+                })
+            else:
+                # No campaigns planned at all
+                campaign_results.append({
+                    "account": f"{account_label} ({customer_id})",
+                    "job_name": job.name,
+                    "count": "0",
+                    "type": "Geen nieuwe ontdekt"
+                })
 
         # 2) ROAS adjustments
         if job.portfolio_roas:
@@ -531,22 +609,33 @@ def main() -> None:
     print("\nAlle jobs voltooid.")
 
     end_ts = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    
+    # Build email body with table format
     summary_body = [
         "Weekly automation voltooid.",
         "",
         f"Start (UTC): {start_ts}",
         f"Einde (UTC): {end_ts}",
         "",
-        f"Config: {config_path}",
-        "",
-        "Jobs:",
     ]
-    summary_body.extend(f"- {line}" for line in summary_lines)
+    
+    # Add campaign creation table
+    if campaign_results:
+        summary_body.extend([
+            "Account,Job Naam,Aantal Nieuwe Campagnes,Type Campagne",
+        ])
+        for result in campaign_results:
+            summary_body.append(
+                f"{result['account']},{result['job_name']},{result['count']},{result['type']}"
+            )
+    else:
+        summary_body.append("Geen campagnes gecontroleerd.")
+    
     summary_body.extend(
         [
             "",
-            "Totaal samenvatting:",
-            f"- PMax campagnes: labels gevonden={global_pmax_labels}, campagnes gepland/te maken={global_pmax_to_make}",
+            "",
+            "ROAS Aanpassingen:",
             f"- Portfolio tROAS strategies: gevonden={global_portfolio_found}, aangepast={global_portfolio_adjusted}",
             f"- PMax ROAS campagnes: gevonden={global_pmax_roas_found}, aangepast={global_pmax_roas_adjusted}",
         ]
