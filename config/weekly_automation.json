@@ -241,7 +241,7 @@
       "enabled": true,
       "customer_id": "747-204-9709",
       "reset": true,
-      "percentage": -28
+      "percentage": -35
     },
     "pmax_roas": {
       "enabled": false,
@@ -577,7 +577,7 @@
       "enabled": true,
       "customer_id": "872-502-3437",
       "reset": true,
-      "percentage": -25
+      "percentage": -35
     },
     "pmax_roas": {
       "enabled": false,
